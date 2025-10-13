@@ -1,0 +1,49 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: next-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - db
+    networks:
+      - app-network
+    environment:
+      DATABASE_URL: postgresql://nattwut:123456@db:5432/dbkhao
+
+  db:
+    image: postgres:16-alpine
+    container_name: postgres-dev
+    restart: always
+    environment:
+      POSTGRES_USER: nattwut
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: dbkhao
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+volumes:
+  postgres-data:
+
+networks:
+  app-network:
+    driver: bridge

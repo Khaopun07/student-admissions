@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  nationalId   String    @unique // หมายเลขบัตรประชาชน 13 หลัก
+  email        String    @unique
+  password     String
+  role         UserRole  @default(STUDENT)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  studentProfile StudentProfile?
+  applications Application[]
+}
+
+model StudentProfile {
+  id           String    @id @default(uuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id])
+  firstName    String?
+  lastName     String?
+  dateofbirth  String?
+  lasercode    String?   
+  province     String?
+  school       String?
+  gpaxScore    Float?    // คะแนนเฉลี่ยรวม
+  mathScore    Float?    // ผลการเรียนคณิตศาสตร์
+  scienceScore Float?    // ผลการเรียนวิทยาศาสตร์
+  pdpaAccepted Boolean   @default(false)
+  // Add other student-specific fields as needed
+}
+
+model Application {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id])
+  status       ApplicationStatus @default(PENDING_REVIEW)
+  examDetails  ExamDetails?
+  documents    Document[]
+  admissionResult AdmissionResult?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ExamDetails {
+  id            String    @id @default(uuid())
+  applicationId String    @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+  examEligible  Boolean   @default(false)
+  roomNumber    String?
+  seatNumber    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Document {
+  id            String    @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  documentType  DocumentType
+  filePath      String    // Path to the uploaded file
+  uploadedAt    DateTime  @default(now())
+}
+
+model AdmissionResult {
+  id            String    @id @default(uuid())
+  applicationId String    @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+  isAdmitted    Boolean?  // True for "ตัวจริง", False for "สำรอง", null if not yet announced
+  isConfirmed   Boolean?  // True for "ยืนยันสิทธิ์", False for "สละสิทธิ์", null if not yet decided
+  confirmationDate DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING_REVIEW // รอตรวจสอบ (ยังไม่ได้รับการอนุมัติจาก Admin)
+  DOCUMENTS_SUBMITTED // เอกสารยืนยันสิทธิ์สอบและสลิปชำระเงิน
+  ELIGIBLE_FOR_EXAM // มีสิทธิ์สอบ
+  ADMISSION_ANNOUNCED // ประกาศผล
+  CONFIRMED_ADMISSION // ยืนยันสิทธิ์
+  REJECTED_ADMISSION // สละสิทธิ์
+  NOT_PROCESSED // ไม่ดำเนินการ
+  WAITING_FOR_CALL // รอเรียกยืนยันสิทธิ์ (สำหรับสำรอง)
+}
+
+enum DocumentType {
+  EXAM_CONFIRMATION_1
+  EXAM_CONFIRMATION_2
+  PAYMENT_SLIP
+  ADMISSION_CONFIRMATION_1 // หนังสือยืนยันสิทธิ์
+  ADMISSION_CONFIRMATION_2 // สัญญามอบตัว
+  ADMISSION_CONFIRMATION_3 // ใบมอบตัว
+  ADMISSION_CONFIRMATION_4 // ไฟล์ที่ 4
+}
