@@ -19,12 +19,12 @@ services:
 
   db:
     image: postgres:16-alpine
-    container_name: postgres-dev
+    container_name: postgres-dev-admin
     restart: always
     environment:
-      POSTGRES_USER: nattwut
+      POSTGRES_USER: fluk
       POSTGRES_PASSWORD: 123456
-      POSTGRES_DB: dbkhao
+      POSTGRES_DB: dbfluk
     ports:
       - "5432:5432"
     volumes:
