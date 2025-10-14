@@ -1,8 +1,8 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export default function StudentDashboardPage() {
   const { data: session, status } = useSession();
@@ -28,12 +28,6 @@ export default function StudentDashboardPage() {
 
         <div className="flex flex-col space-y-4 mt-6">
           <button
-            onClick={() => router.push('/student/profile')}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            จัดการข้อมูลส่วนตัว
-          </button>
-          <button
             onClick={() => router.push('/student/documents')}
             className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
           >
@@ -56,12 +50,6 @@ export default function StudentDashboardPage() {
             className="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
           >
             ติดตามสถานะการสมัคร
-          </button>
-          <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
-            className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            ออกจากระบบ
           </button>
         </div>
       </div>

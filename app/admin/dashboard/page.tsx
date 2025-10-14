@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ApplicationStatus } from '@prisma/client';
@@ -147,12 +147,6 @@ export default function AdminDashboardPage() {
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
           >
             ส่งออกข้อมูลทั้งหมดเป็น Excel
-          </button>
-          <button
-            onClick={() => signOut({ callbackUrl: '/admin/login' })}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            ออกจากระบบ
           </button>
         </div>
       </div>
