@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
             onClick={() => router.push('/api/admin/export-data')} // This will trigger a download
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
           >
-            ส่งออกข้อมูลทั้งหมดเป็น Excel
+            ส่งออกข้อมูลทั้งหมดเป็น-Excel
           </button>
         </div>
       </div>
