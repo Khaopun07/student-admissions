@@ -12,17 +12,15 @@ export async function GET(_request: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const studentsWithExamDetails = await prisma.application.findMany({
-      where: {
-        examDetails: {
-          isNot: null, // Only applications with exam details
-        },
-      },
+    const applications = await prisma.application.findMany({
       include: {
         user: {
           select: {
             nationalId: true,
             email: true,
+            studentProfile: {
+              select: { firstName: true, lastName: true },
+            },
           },
         },
         examDetails: true,
@@ -32,7 +30,7 @@ export async function GET(_request: Request) {
       },
     });
 
-    return NextResponse.json(studentsWithExamDetails, { status: 200 });
+    return NextResponse.json(applications, { status: 200 });
 
   } catch (error) {
     console.error('Get exam management data error:', error);

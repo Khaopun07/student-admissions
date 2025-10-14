@@ -14,21 +14,16 @@ export async function POST(request: Request) {
 
     const userId = session.user.id;
     const formData = await request.formData();
-    const documentType = formData.get('documentType') as DocumentType;
-    const file = formData.get('file') as File;
+    const documentEntries = Array.from(formData.entries());
 
-    if (!documentType || !file) {
-      return NextResponse.json({ message: 'Missing document type or file' }, { status: 400 });
+    if (documentEntries.length === 0) {
+      return NextResponse.json({ message: 'No documents uploaded' }, { status: 400 });
     }
-
-    // In a real application, you would handle file storage (e.g., S3, local filesystem)
-    // For now, we'll simulate file path and save to DB
-    const filePath = `/uploads/${userId}/${documentType}/${file.name}`; // Placeholder path
 
     // Find or create an application for the student
     let application = await prisma.application.findFirst({
       where: { userId },
-      orderBy: { createdAt: 'desc' }, // Get the latest application
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!application) {
@@ -46,16 +41,23 @@ export async function POST(request: Request) {
       });
     }
 
-
-    const newDocument = await prisma.document.create({
-      data: {
-        applicationId: application.id,
-        documentType,
-        filePath,
-      },
+    const documentCreations = documentEntries.map(([key, value]) => {
+      const documentType = key as DocumentType;
+      const file = value as File;
+      const filePath = `/uploads/${userId}/${documentType}/${file.name}`; // Placeholder path
+      
+      return prisma.document.create({
+        data: {
+          applicationId: application.id,
+          documentType: documentType,
+          filePath: filePath,
+        },
+      });
     });
 
-    return NextResponse.json({ message: 'Document uploaded successfully', document: newDocument }, { status: 201 });
+    const createdDocuments = await prisma.$transaction(documentCreations);
+
+    return NextResponse.json({ message: 'Documents uploaded successfully', documents: createdDocuments }, { status: 201 });
 
   } catch (error) {
     console.error('Document upload error:', error);

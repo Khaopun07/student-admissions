@@ -2,16 +2,19 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, ReactNode } from 'react';
 import { ApplicationStatus } from '@prisma/client';
 
-interface User {
+interface UserProfile {
   nationalId: string;
   email: string;
+  studentProfile: {
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
 }
 
 interface ExamDetails {
-  id: string;
   examEligible: boolean;
   roomNumber: string | null;
   seatNumber: string | null;
@@ -19,7 +22,7 @@ interface ExamDetails {
 
 interface Application {
   id: string;
-  user: User;
+  user: UserProfile;
   examDetails: ExamDetails | null;
   status: ApplicationStatus;
 }
@@ -37,6 +40,13 @@ export default function AdminExamManagementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState('');
 
+  // Filter applications to show only those eligible for the exam
+  const eligibleApplications = useMemo(() => {
+    return applications.filter(
+      (app) => app.status === ApplicationStatus.ELIGIBLE_FOR_EXAM
+    );
+  }, [applications]);
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/admin/login');
@@ -46,27 +56,27 @@ export default function AdminExamManagementPage() {
   }, [status, router, session]);
 
   useEffect(() => {
-    const fetchApplications = async () => {
-      if (session?.user?.id) {
-        try {
-          setLoading(true);
-          const response = await fetch('/api/admin/exam-management');
-          const data = await response.json();
-          if (response.ok) {
-            setApplications(data);
-          } else {
-            setError(data.message || 'Failed to fetch applications');
+    if (status === 'authenticated') {
+      const fetchApplications = async () => {
+          try {
+            setLoading(true);
+            const response = await fetch('/api/admin/exam-management');
+            const data = await response.json();
+            if (response.ok) {
+              setApplications(data);
+            } else {
+              setError(data.message || 'ไม่สามารถดึงข้อมูลใบสมัครได้');
+            }
+          } catch (err) {
+            console.error('เกิดข้อผิดพลาดในการดึงข้อมูลใบสมัคร:', err);
+            setError('เกิดข้อผิดพลาดที่ไม่คาดคิดขณะดึงข้อมูลใบสมัคร');
+          } finally {
+            setLoading(false);
           }
-        } catch (err) {
-          console.error('Failed to fetch applications:', err);
-          setError('An unexpected error occurred while fetching applications.');
-        } finally {
-          setLoading(false);
-        }
       }
-    };
-    fetchApplications();
-  }, [session, submitSuccess]);
+      fetchApplications();
+    }
+  }, [status, session, submitSuccess]);
 
   const handleEditClick = (application: Application) => {
     setEditingApplicationId(application.id);
@@ -124,7 +134,7 @@ export default function AdminExamManagementPage() {
   };
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">กำลังโหลด...</div>;
   }
 
   if (error) {
@@ -144,8 +154,7 @@ export default function AdminExamManagementPage() {
             <thead>
               <tr>
                 <th className="py-2 px-4 border-b">เลขประจำตัวประชาชน</th>
-                <th className="py-2 px-4 border-b">อีเมล</th>
-                <th className="py-2 px-4 border-b">สถานะ</th>
+                <th className="py-2 px-4 border-b">ชื่อ-สกุล</th>
                 <th className="py-2 px-4 border-b">มีสิทธิ์สอบ</th>
                 <th className="py-2 px-4 border-b">หมายเลขห้องสอบ</th>
                 <th className="py-2 px-4 border-b">หมายเลขที่นั่งสอบ</th>
@@ -153,12 +162,13 @@ export default function AdminExamManagementPage() {
               </tr>
             </thead>
             <tbody>
-              {applications.length > 0 ? (
-                applications.map((app) => (
+              {eligibleApplications.length > 0 ? (
+                eligibleApplications.map((app) => (
                   <tr key={app.id} className="hover:bg-gray-50">
                     <td className="py-2 px-4 border-b">{app.user.nationalId}</td>
-                    <td className="py-2 px-4 border-b">{app.user.email}</td>
-                    <td className="py-2 px-4 border-b">{app.status.replace(/_/g, ' ')}</td>
+                    <td className="py-2 px-4 border-b">
+                      {app.user.studentProfile?.firstName || ''} {app.user.studentProfile?.lastName || ''}
+                    </td>
                     {editingApplicationId === app.id ? (
                       <>
                         <td className="py-2 px-4 border-b">
@@ -220,7 +230,7 @@ export default function AdminExamManagementPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-4 text-center">ไม่พบใบสมัครที่มีรายละเอียดการสอบ</td>
+                  <td colSpan={6} className="py-4 text-center text-gray-500">ไม่พบนักเรียนที่มีสิทธิ์สอบ</td>
                 </tr>
               )}
             </tbody>

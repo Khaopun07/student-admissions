@@ -58,12 +58,12 @@ export default function AdminAdmissionManagementPage() {
         try {
           setLoading(true);
           const response = await fetch('/api/admin/admission-management');
-          if (!response.ok) throw new Error('Failed to fetch applications');
+          if (!response.ok) throw new Error('ไม่สามารถดึงข้อมูลใบสมัครได้');
           const data = await response.json();
           setApplications(data);
         } catch (err) {
-          console.error('Failed to fetch applications:', err);
-          setError('An unexpected error occurred while fetching applications.');
+          console.error('เกิดข้อผิดพลาดในการดึงข้อมูลใบสมัคร:', err);
+          setError('เกิดข้อผิดพลาดที่ไม่คาดคิดขณะดึงข้อมูลใบสมัคร');
         } finally {
           setLoading(false);
         }
@@ -95,18 +95,18 @@ export default function AdminAdmissionManagementPage() {
       if (response.ok) {
         setSubmitSuccess(data.message);
       } else {
-        setError(data.message || 'Failed to announce admission result');
+        setError(data.message || 'ไม่สามารถประกาศผลการรับเข้าศึกษาได้');
       }
     } catch (err) {
-      console.error('Announce result error:', err);
-      setError('An unexpected error occurred while announcing result.');
+      console.error('เกิดข้อผิดพลาดในการประกาศผล:', err);
+      setError('เกิดข้อผิดพลาดที่ไม่คาดคิดขณะประกาศผล');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-gray-100">กำลังโหลด...</div>;
   }
 
   if (error) {
@@ -116,7 +116,7 @@ export default function AdminAdmissionManagementPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-6xl mx-auto bg-white p-8 rounded shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">Admin: Admission Management</h1>
+        <h1 className="text-3xl font-bold mb-6 text-center">ผู้ดูแลระบบ: จัดการผลการรับเข้าศึกษา</h1>
 
         {submitSuccess && <p className="text-green-500 text-xs italic mb-4">{submitSuccess}</p>}
         {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
@@ -125,13 +125,13 @@ export default function AdminAdmissionManagementPage() {
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
               <tr>
-                <th className="py-2 px-4 border-b">National ID</th>
-                <th className="py-2 px-4 border-b">Name</th>
-                <th className="py-2 px-4 border-b">Email</th>
-                <th className="py-2 px-4 border-b">Current Status</th>
-                <th className="py-2 px-4 border-b">Admission Result</th>
-                <th className="py-2 px-4 border-b">Student Confirmed?</th>
-                <th className="py-2 px-4 border-b">Actions</th>
+                <th className="py-2 px-4 border-b">เลขประจำตัวประชาชน</th>
+                <th className="py-2 px-4 border-b">ชื่อ-สกุล</th>
+                <th className="py-2 px-4 border-b">อีเมล</th>
+                <th className="py-2 px-4 border-b">สถานะปัจจุบัน</th>
+                <th className="py-2 px-4 border-b">ผลการรับเข้าศึกษา</th>
+                <th className="py-2 px-4 border-b">นักเรียนยืนยันสิทธิ์?</th>
+                <th className="py-2 px-4 border-b">การดำเนินการ</th>
               </tr>
             </thead>
             <tbody>
@@ -145,16 +145,16 @@ export default function AdminAdmissionManagementPage() {
                     <td className="py-2 px-4 border-b">{app.user.email}</td>
                     <td className="py-2 px-4 border-b">{app.status.replace(/_/g, ' ')}</td>
                     <td className="py-2 px-4 border-b">
-                      {app.admissionResult?.isAdmitted === true ? 'Admitted' :
-                       app.admissionResult?.isAdmitted === false ? 'Reserve' : 'N/A'}
+                      {app.admissionResult?.isAdmitted === true ? 'ตัวจริง' :
+                       app.admissionResult?.isAdmitted === false ? 'สำรอง' : 'ไม่มีข้อมูล'}
                     </td>
                     <td className="py-2 px-4 border-b">
-                      {app.admissionResult?.isConfirmed === true ? 'Yes' :
-                       app.admissionResult?.isConfirmed === false ? 'No' : 'Pending'}
+                      {app.admissionResult?.isConfirmed === true ? 'ใช่' :
+                       app.admissionResult?.isConfirmed === false ? 'ไม่' : 'รอดำเนินการ'}
                     </td>
                     <td className="py-2 px-4 border-b">
                       {app.status === ApplicationStatus.ADMISSION_ANNOUNCED || app.status === ApplicationStatus.CONFIRMED_ADMISSION || app.status === ApplicationStatus.REJECTED_ADMISSION ? (
-                        <span className="text-gray-500">Result Announced</span>
+                        <span className="text-gray-500">ประกาศผลแล้ว</span>
                       ) : (
                         <>
                           <button
@@ -162,14 +162,14 @@ export default function AdminAdmissionManagementPage() {
                             className="bg-green-500 hover:bg-green-700 text-white text-sm py-1 px-2 rounded mr-2"
                             disabled={submitting}
                           >
-                            Announce Admitted
+                            ประกาศเป็นตัวจริง
                           </button>
                           <button
                             onClick={() => handleAnnounceResult(app.id, false)}
                             className="bg-yellow-500 hover:bg-yellow-700 text-white text-sm py-1 px-2 rounded"
                             disabled={submitting}
                           >
-                            Announce Reserve
+                            ประกาศเป็นตัวสำรอง
                           </button>
                         </>
                       )}
@@ -178,7 +178,7 @@ export default function AdminAdmissionManagementPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="py-4 text-center">No applications found.</td>
+                  <td colSpan={7} className="py-4 text-center">ไม่พบใบสมัคร</td>
                 </tr>
               )}
             </tbody>
@@ -190,7 +190,7 @@ export default function AdminAdmissionManagementPage() {
             onClick={() => router.push('/admin/dashboard')}
             className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
           >
-            Back to Dashboard
+            กลับไปที่แดชบอร์ด
           </button>
         </div>
       </div>

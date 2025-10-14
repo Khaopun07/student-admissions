@@ -53,10 +53,10 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
-    const { confirmAdmission, documentPaths } = await request.json(); // documentPaths will be an array of file paths
+    const { applicationId, confirmAdmission, documents } = await request.json();
 
-    if (typeof confirmAdmission !== 'boolean' || !documentPaths || !Array.isArray(documentPaths)) {
-      return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
+    if (typeof confirmAdmission !== 'boolean' || !applicationId) {
+      return NextResponse.json({ message: 'Invalid request body: Missing applicationId or confirmAdmission flag' }, { status: 400 });
     }
 
     const application = await prisma.application.findFirst({
@@ -86,24 +86,18 @@ export async function POST(request: Request) {
     });
 
     // Create document entries for the confirmation/rejection documents
-    const documentCreations = documentPaths.map((path: string, index: number) => {
-      let documentType: PrismaDocumentType;
-      switch (index) {
-        case 0: documentType = PrismaDocumentType.ADMISSION_CONFIRMATION_1; break;
-        case 1: documentType = PrismaDocumentType.ADMISSION_CONFIRMATION_2; break;
-        case 2: documentType = PrismaDocumentType.ADMISSION_CONFIRMATION_3; break;
-        case 3: documentType = PrismaDocumentType.ADMISSION_CONFIRMATION_4; break;
-        default: documentType = PrismaDocumentType.ADMISSION_CONFIRMATION_1; // Fallback
-      }
+    if (confirmAdmission && documents && Array.isArray(documents)) {
+      const documentCreations = documents.map((doc: { documentType: PrismaDocumentType, filePath: string }) => {
       return prisma.document.create({
         data: {
           applicationId: application.id,
-          documentType,
-          filePath: path,
+          documentType: doc.documentType,
+          filePath: doc.filePath,
         },
       });
     });
     await prisma.$transaction(documentCreations);
+    }
 
 
     return NextResponse.json({ message: 'Admission status updated successfully', result: updatedAdmissionResult }, { status: 200 });

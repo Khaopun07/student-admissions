@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, ChangeEvent } from 'react';
 import { DocumentType } from '@prisma/client';
 
 interface Document {
@@ -12,16 +12,37 @@ interface Document {
   uploadedAt: string;
 }
 
+interface DocumentUploadState {
+  [key: string]: File | null;
+}
+
+const documentTypeTranslations: Record<DocumentType, string> = {
+  EXAM_CONFIRMATION_1: 'เอกสารยืนยันสิทธิ์การเข้าสอบ',
+  EXAM_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับยืนยันสิทธิ์สอบ)',
+  PAYMENT_SLIP: 'แบบยืนยันการชําระเงินค่าธรรมเนียม',
+  ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์ (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
+  ADMISSION_CONFIRMATION_4: 'ไฟล์ที่ 4 (สำหรับเข้าศึกษา)',
+};
+
+const REQUIRED_DOCUMENTS: DocumentType[] = [
+  DocumentType.EXAM_CONFIRMATION_1,
+  DocumentType.PAYMENT_SLIP,
+];
+
 export default function StudentDocumentsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType | ''>('');
   const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState('');
+  const [documentUploads, setDocumentUploads] = useState<DocumentUploadState>({
+    [DocumentType.EXAM_CONFIRMATION_1]: null,
+    [DocumentType.PAYMENT_SLIP]: null,
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -54,16 +75,12 @@ export default function StudentDocumentsPage() {
     fetchDocuments();
   }, [session, uploadSuccess]); // Refetch documents on upload success
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>, docType: DocumentType) => {
     if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+      setDocumentUploads(prev => ({ ...prev, [docType]: e.target.files![0] }));
     } else {
-      setSelectedFile(null);
+      setDocumentUploads(prev => ({ ...prev, [docType]: null }));
     }
-  };
-
-  const handleDocumentTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedDocumentType(e.target.value as DocumentType);
   };
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -71,15 +88,19 @@ export default function StudentDocumentsPage() {
     setError('');
     setUploadSuccess('');
 
-    if (!selectedFile || !selectedDocumentType) {
-      setError('Please select a file and a document type.');
+    const allDocsUploaded = REQUIRED_DOCUMENTS.every(docType => documentUploads[docType]);
+    if (!allDocsUploaded) {
+      setError('กรุณาอัปโหลดเอกสารให้ครบทั้ง 2 ไฟล์');
       return;
     }
 
     setUploading(true);
     const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('documentType', selectedDocumentType);
+    REQUIRED_DOCUMENTS.forEach(docType => {
+      if (documentUploads[docType]) {
+        formData.append(docType, documentUploads[docType]!);
+      }
+    });
 
     try {
       const response = await fetch('/api/student/documents', {
@@ -91,8 +112,10 @@ export default function StudentDocumentsPage() {
 
       if (response.ok) {
         setUploadSuccess(data.message);
-        setSelectedFile(null);
-        setSelectedDocumentType('');
+        setDocumentUploads({
+          [DocumentType.EXAM_CONFIRMATION_1]: null,
+          [DocumentType.PAYMENT_SLIP]: null,
+        });
       } else {
         setError(data.message || 'Document upload failed');
       }
@@ -120,37 +143,21 @@ export default function StudentDocumentsPage() {
         <div className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">อัปโหลดเอกสารใหม่</h2>
           <form onSubmit={handleUpload} className="space-y-4">
-            <div>
-              <label htmlFor="documentType" className="block text-gray-700 text-sm font-bold mb-2">
-                ประเภทเอกสาร
-              </label>
-              <select
-                id="documentType"
-                className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                value={selectedDocumentType}
-                onChange={handleDocumentTypeChange}
-                required
-              >
-                <option value="">เลือกประเภทเอกสาร</option>
-                {Object.values(DocumentType).map((type) => (
-                  <option key={type} value={type}>
-                    {type.replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="file" className="block text-gray-700 text-sm font-bold mb-2">
-                ไฟล์
-              </label>
-              <input
-                type="file"
-                id="file"
-                className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                onChange={handleFileChange}
-                required
-              />
-            </div>
+            {REQUIRED_DOCUMENTS.map(docType => (
+              <div key={docType}>
+                <label htmlFor={docType} className="block text-gray-700 text-sm font-bold mb-2">
+                  {documentTypeTranslations[docType]}
+                </label>
+                <input
+                  type="file"
+                  id={docType}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  onChange={(e) => handleFileChange(e, docType)}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                />
+                {documentUploads[docType] && <p className="text-sm text-gray-500 mt-1">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>}
+              </div>
+            ))}
             {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
             {uploadSuccess && <p className="text-green-500 text-xs italic mb-4">{uploadSuccess}</p>}
             <button
@@ -169,7 +176,7 @@ export default function StudentDocumentsPage() {
             <ul className="list-disc pl-5">
               {documents.map((doc) => (
                 <li key={doc.id} className="mb-2">
-                  <strong>{doc.documentType.replace(/_/g, ' ')}:</strong>{' '}
+                  <strong>{documentTypeTranslations[doc.documentType]}:</strong>{' '}
                   <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
                     {doc.filePath.split('/').pop()}
                   </a>{' '}

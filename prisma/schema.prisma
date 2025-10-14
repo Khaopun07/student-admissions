@@ -99,11 +99,10 @@ enum ApplicationStatus {
 }
 
 enum DocumentType {
-  EXAM_CONFIRMATION_1
-  EXAM_CONFIRMATION_2
-  PAYMENT_SLIP
+  EXAM_CONFIRMATION_1 // เอกสารยืนยันสิทธิ์สอบ
+  EXAM_CONFIRMATION_2 // สัญญามอบตัว
+  PAYMENT_SLIP // สลิปชำระเงิน
   ADMISSION_CONFIRMATION_1 // หนังสือยืนยันสิทธิ์
   ADMISSION_CONFIRMATION_2 // สัญญามอบตัว
   ADMISSION_CONFIRMATION_3 // ใบมอบตัว
-  ADMISSION_CONFIRMATION_4 // ไฟล์ที่ 4
 }
