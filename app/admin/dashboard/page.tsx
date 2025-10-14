@@ -2,7 +2,8 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { ApplicationStatus } from '@prisma/client';
 
 interface Phase2Data {
@@ -20,6 +21,8 @@ interface Phase3Data {
   countBySchool: { status: ApplicationStatus; _count: { id: number } }[];
   countByProvince: { status: ApplicationStatus; _count: { id: number } }[];
 }
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -71,6 +74,16 @@ export default function AdminDashboardPage() {
     }
   }, [session, status]);
 
+  const phase3ChartData = useMemo(() => {
+    if (!phase3Data) return [];
+    return [
+      { name: 'ยืนยันสิทธิ์แล้ว', value: phase3Data.confirmedCount },
+      { name: 'สละสิทธิ์', value: phase3Data.rejectedCount },
+      { name: 'ยังไม่ดำเนินการ', value: phase3Data.notProcessedCount },
+      { name: 'รอเรียก (ตัวสำรอง)', value: phase3Data.waitingForCallCount },
+    ].filter(item => item.value > 0);
+  }, [phase3Data]);
+
   if (status === 'loading' || loadingPhase2 || loadingPhase3) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
   }
@@ -85,16 +98,16 @@ export default function AdminDashboardPage() {
         <h1 className="text-3xl font-bold mb-6 text-center">แดชบอร์ดผู้ดูแลระบบ</h1>
         <p className="text-lg mb-4">ยินดีต้อนรับ, ผู้ดูแลระบบ {session?.user?.email}!</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Phase 2 Dashboard */}
           <div className="p-6 border rounded-md bg-blue-50">
             <h2 className="text-2xl font-semibold mb-4">ภาพรวมระยะที่ 2: การจัดการสอบ</h2>
             {phase2Data ? (
-              <div>
-                <p><strong>จำนวนผู้มีสิทธิ์สอบทั้งหมด:</strong> {phase2Data.totalConfirmed}</p>
-                {/* Add more detailed breakdown by province/school if schema is updated */}
-                <p className="text-gray-600 mt-2">
-                  (การแบ่งข้อมูลอย่างละเอียดตามจังหวัด/โรงเรียนต้องมีการอัปเดตสกีมา)
+              <div className="text-center">
+                <p className="text-4xl font-bold text-blue-800">{phase2Data.totalConfirmed}</p>
+                <p className="text-lg text-gray-600">จำนวนผู้มีสิทธิ์สอบทั้งหมด</p>
+                <p className="text-gray-500 mt-4 text-sm">
+                  (ข้อมูลสำหรับกราฟวงกลมในส่วนนี้ยังไม่พร้อมใช้งาน)
                 </p>
               </div>
             ) : (
@@ -105,17 +118,28 @@ export default function AdminDashboardPage() {
           {/* Phase 3 Dashboard */}
           <div className="p-6 border rounded-md bg-green-50">
             <h2 className="text-2xl font-semibold mb-4">ภาพรวมระยะที่ 3: การยืนยันสิทธิ์เข้าศึกษา</h2>
-            {phase3Data ? (
-              <div>
-                <p><strong>ผู้สมัครทั้งหมด (ที่คาดหวัง):</strong> {phase3Data.totalApplicants}</p>
-                <p><strong>ยืนยันสิทธิ์แล้ว:</strong> {phase3Data.confirmedCount}</p>
-                <p><strong>สละสิทธิ์:</strong> {phase3Data.rejectedCount}</p>
-                <p><strong>ยังไม่ดำเนินการ:</strong> {phase3Data.notProcessedCount}</p>
-                <p><strong>รอเรียก (ตัวสำรอง):</strong> {phase3Data.waitingForCallCount}</p>
-                {/* Add more detailed breakdown by province/school if schema is updated */}
-                <p className="text-gray-600 mt-2">
-                  (การแบ่งข้อมูลอย่างละเอียดตามโรงเรียน/จังหวัดต้องมีการอัปเดตสกีมา)
-                </p>
+            {phase3Data && phase3ChartData.length > 0 ? (
+              <div style={{ width: '100%', height: 300 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={phase3ChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, percent, value }: PieLabelRenderProps) => `${name}: ${value} `}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {phase3ChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <p>ไม่มีข้อมูลระยะที่ 3</p>
@@ -124,24 +148,6 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex flex-col space-y-4">
-          <button
-            onClick={() => router.push('/admin/exam-management')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-          >
-            จัดการข้อมูลการสอบ
-          </button>
-          <button
-            onClick={() => router.push('/admin/admission-management')}
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-          >
-            จัดการผลการรับเข้าศึกษา
-          </button>
-          <button
-            onClick={() => router.push('/admin/document-review')}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded"
-          >
-            ตรวจสอบเอกสาร
-          </button>
           <button
             onClick={() => router.push('/api/admin/export-data')} // This will trigger a download
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded"
