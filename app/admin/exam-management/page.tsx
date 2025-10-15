@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo, ReactNode } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { ApplicationStatus } from '@prisma/client';
 
 interface UserProfile {

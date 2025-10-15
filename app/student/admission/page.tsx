@@ -46,6 +46,7 @@ const statusTranslations: Record<ApplicationStatus, string> = {
   REJECTED_ADMISSION: 'สละสิทธิ์',
   NOT_PROCESSED: 'ไม่ดำเนินการ',
   WAITING_FOR_CALL: 'รอเรียก (ตัวสำรอง)',
+  ADMISSION_COMPLETED: 'การสมัครเสร็จสมบูรณ์',
 };
 
 export default function StudentAdmissionPage() {

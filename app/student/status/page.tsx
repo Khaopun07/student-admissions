@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { CheckCircle, Clock, AlertCircle, Award, Zap, FileText } from 'lucide-react';
 
 interface Step {
   title: string;
   status: ApplicationStatusKey;
-  icon: any; // You might want to refine this type if you have a specific icon type
+  icon: React.ElementType;
   content: React.JSX.Element;
 }
 
@@ -21,17 +23,6 @@ const ApplicationStatus = {
   ADMISSION_COMPLETED: 'ADMISSION_COMPLETED',
 } as const;
 
-const statusTranslations = {
-  PENDING_REVIEW: 'รอตรวจสอบ',
-  DOCUMENTS_SUBMITTED: 'ยื่นเอกสารแล้ว',
-  ELIGIBLE_FOR_EXAM: 'มีสิทธิ์สอบ',
-  ADMISSION_ANNOUNCED: 'ประกาศผลแล้ว',
-  CONFIRMED_ADMISSION: 'ยืนยันสิทธิ์แล้ว',
-  REJECTED_ADMISSION: 'สละสิทธิ์',
-  WAITING_FOR_CALL: 'รอการติดต่อกลับ',
-  ADMISSION_COMPLETED: 'การสมัครเสร็จสมบูรณ์',
-};
-
 const statusOrder: ApplicationStatusKey[] = [
   'PENDING_REVIEW',
   'DOCUMENTS_SUBMITTED',
@@ -39,7 +30,6 @@ const statusOrder: ApplicationStatusKey[] = [
   'ADMISSION_ANNOUNCED',
   'CONFIRMED_ADMISSION',
   'ADMISSION_COMPLETED',
-  'REJECTED_ADMISSION',
 ];
 
 type ApplicationStatusKey = keyof typeof ApplicationStatus;
@@ -65,24 +55,43 @@ interface Application {
 }
 
 export default function StudentStatusTrackingPage() {
-  const [application] = useState<Application>({
-    id: 'APP-001',
-    createdAt: '2024-10-01T00:00:00Z',
-    status: ApplicationStatus.ADMISSION_COMPLETED,
-    examDetails: {
-      examEligible: true,
-      roomNumber: '101',
-      seatNumber: '25',
-    },
-    admissionResult: {
-      isAdmitted: true,
-      isConfirmed: true,
-      confirmationDate: '2024-10-15T00:00:00Z',
-    },
-  });
+  const { data: session, status: sessionStatus } = useSession();
+  const router = useRouter();
+  const [application, setApplication] = useState<Application | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const [loading] = useState(false);
-  const [error] = useState('');
+  useEffect(() => {
+    if (sessionStatus === 'unauthenticated') {
+      router.push('/login');
+    } else if (sessionStatus === 'authenticated' && session?.user?.role !== 'STUDENT') {
+      router.push('/admin/dashboard');
+    }
+  }, [sessionStatus, router, session]);
+
+  useEffect(() => {
+    const fetchApplicationData = async () => {
+      if (sessionStatus === 'authenticated') {
+        try {
+          setLoading(true);
+          const response = await fetch('/api/student/status-tracking');
+          const data = await response.json();
+          if (response.ok) {
+            setApplication(data);
+          } else {
+            setError(data.message || 'ไม่สามารถดึงข้อมูลการสมัครได้');
+          }
+        } catch (err) {
+          console.error('Failed to fetch application data:', err);
+          setError('เกิดข้อผิดพลาดในการดึงข้อมูล');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchApplicationData();
+  }, [sessionStatus]);
 
   const steps: Step[] = [
     {
@@ -93,7 +102,7 @@ export default function StudentStatusTrackingPage() {
         <>
           <p className="mb-3 text-gray-700">
             คุณได้ยื่นเอกสารสำหรับการสมัครเรียบร้อยแล้วเมื่อวันที่{' '}
-            <span className="font-semibold">{new Date(application.createdAt).toLocaleDateString('th-TH')}</span>
+            <span className="font-semibold">{application ? new Date(application.createdAt).toLocaleDateString('th-TH') : '...'}</span>
           </p>
           <p className="text-gray-600">เจ้าหน้าที่กำลังตรวจสอบเอกสารของคุณ</p>
         </>
@@ -193,7 +202,7 @@ export default function StudentStatusTrackingPage() {
     },
   ];
 
-  if (loading) {
+  if (loading || sessionStatus === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
         <div className="text-center">
@@ -215,6 +224,13 @@ export default function StudentStatusTrackingPage() {
     );
   }
 
+  // Filter steps to display. Only show "ADMISSION_COMPLETED" if the status is actually completed.
+  const displayedSteps = application
+    ? application.status === ApplicationStatus.ADMISSION_COMPLETED
+      ? steps
+      : steps.filter(step => step.status !== ApplicationStatus.ADMISSION_COMPLETED)
+    : [];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 p-6">
       <div className="max-w-4xl mx-auto">
@@ -233,26 +249,26 @@ export default function StudentStatusTrackingPage() {
           <div className="relative">
             {/* Timeline */}
             <div className="space-y-8">
-              {steps.map((step, index) => {
+              {displayedSteps.map((step, index) => {
                 const currentStatusIndex = getStatusIndex(application.status);
                 const stepStatusIndex = getStatusIndex(step.status);
                 const isRejected = application.status === ApplicationStatus.REJECTED_ADMISSION;
 
                 let statusType: keyof typeof colors = 'upcoming';
-                if (currentStatusIndex > stepStatusIndex) {
+                // If the status is rejected, only mark steps up to "Confirmed Admission" as completed/current
+                if (isRejected && step.status === ApplicationStatus.CONFIRMED_ADMISSION) {
+                  statusType = 'current'; // Show rejection at this step
+                } else if (isRejected && stepStatusIndex < getStatusIndex(ApplicationStatus.CONFIRMED_ADMISSION)) {
+                  statusType = 'completed';
+                } else if (!isRejected && (currentStatusIndex > stepStatusIndex || application.status === ApplicationStatus.ADMISSION_COMPLETED)) {
                   statusType = 'completed';
                 } else if (
-                  currentStatusIndex === stepStatusIndex ||
-                  (isRejected && step.status === ApplicationStatus.CONFIRMED_ADMISSION) ||
+                  !isRejected && (currentStatusIndex === stepStatusIndex ||
                   (application.status === ApplicationStatus.WAITING_FOR_CALL && step.status === ApplicationStatus.ADMISSION_ANNOUNCED) ||
-                  (application.status === ApplicationStatus.PENDING_REVIEW && step.status === ApplicationStatus.DOCUMENTS_SUBMITTED)
-                ) {
+                  (application.status === ApplicationStatus.PENDING_REVIEW && step.status === ApplicationStatus.DOCUMENTS_SUBMITTED))
+                )  {
+                  if (step.status !== ApplicationStatus.ADMISSION_COMPLETED)
                   statusType = 'current';
-                }
-
-                // Special case for the final completed step
-                if (step.status === ApplicationStatus.ADMISSION_COMPLETED && statusType === 'current') {
-                  statusType = 'completed';
                 }
 
                 const StepIcon = step.icon;
@@ -287,7 +303,7 @@ export default function StudentStatusTrackingPage() {
                 return (
                   <div key={index} className="relative">
                     {/* Vertical Line */}
-                    {index < steps.length - 1 && (
+                    {index < displayedSteps.length - 1 && (
                       <div
                         className={`absolute left-6 top-16 w-1 h-20 bg-gradient-to-b ${color.line} opacity-30`}
                       />
@@ -316,13 +332,17 @@ export default function StudentStatusTrackingPage() {
                         <div className={`rounded-xl shadow-md p-6 ${color.card} transition-all hover:shadow-lg`}>
                           <div className="flex items-center justify-between mb-3">
                             <h3 className={`text-xl font-bold ${color.title}`}>{step.title}</h3>
-                            {(statusType === 'completed' ||
-                              (statusType === 'current' && step.status === ApplicationStatus.ADMISSION_COMPLETED)) && (
+                            {statusType === 'completed' && (
                               <span className="inline-block">
                                 <CheckCircle className="w-5 h-5 text-green-500" />
                               </span>
                             )}
-                            {statusType === 'current' && step.status !== ApplicationStatus.ADMISSION_COMPLETED && (
+                            {statusType === 'current' && isRejected && step.status === ApplicationStatus.CONFIRMED_ADMISSION ? (
+                              <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-700`}>
+                                สละสิทธิ์
+                              </span>
+                            ) : 
+                            statusType === 'current' && (
                               <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${color.badge}`}>
                                 กำลังดำเนินการ
                               </span>
@@ -347,12 +367,12 @@ export default function StudentStatusTrackingPage() {
                 <div
                   className="bg-gradient-to-r from-blue-500 to-orange-500 h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${((getStatusIndex(application.status) + 1) / steps.length) * 100}%`,
+                    width: `${application.status === 'REJECTED_ADMISSION' ? ((getStatusIndex('CONFIRMED_ADMISSION')) / displayedSteps.length) * 100 : ((getStatusIndex(application.status) + 1) / displayedSteps.length) * 100}%`,
                   }}
                 />
               </div>
               <p className="text-sm text-gray-600 mt-3">
-                ขั้นตอนที่ {getStatusIndex(application.status) + 1} จาก {steps.length}
+                ขั้นตอนที่ {application.status === 'REJECTED_ADMISSION' ? getStatusIndex('CONFIRMED_ADMISSION') : getStatusIndex(application.status) + 0} จาก {displayedSteps.length}
               </p>
             </div>
           </div>
@@ -366,7 +386,7 @@ export default function StudentStatusTrackingPage() {
         {/* Back Button */}
         <div className="mt-8 flex justify-center">
           <button
-            onClick={() => window.history.back()}
+            onClick={() => router.push('/student/dashboard')}
             className="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 font-bold rounded-lg shadow-md border border-gray-200 transition-all transform hover:scale-105 flex items-center gap-2"
           >
             ← กลับไปที่แดชบอร์ด

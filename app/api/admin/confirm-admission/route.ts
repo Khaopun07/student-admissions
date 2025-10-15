@@ -8,7 +8,7 @@ import { ApplicationStatus } from '@prisma/client';
  * GET handler to fetch applications that have been confirmed by students
  * but not yet finalized by an admin.
  */
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'ADMIN') {
@@ -51,8 +51,7 @@ export async function GET(request: Request) {
 
 /**
  * POST handler for admin to finalize the admission confirmation.
- * This is a placeholder for a final status update.
- * For now, it just returns a success message.
+ * This updates the application status to ADMISSION_COMPLETED.
  */
 export async function POST(request: Request) {
   try {
@@ -62,9 +61,19 @@ export async function POST(request: Request) {
     }
 
     const { applicationId } = await request.json();
-    // In a real scenario, you might update the status to something like 'ADMISSION_COMPLETED'
-    // For now, we'll just log it and return success.
-    console.log(`Admin finalized admission for application ID: ${applicationId}`);
+
+    if (!applicationId) {
+      return NextResponse.json({ message: 'Application ID is required' }, { status: 400 });
+    }
+
+    const updatedApplication = await prisma.application.update({
+      where: { id: applicationId },
+      data: {
+        status: ApplicationStatus.ADMISSION_COMPLETED,
+      },
+    });
+
+    console.log(`Admin finalized admission for application ID: ${updatedApplication.id}, status set to ADMISSION_COMPLETED`);
 
     return NextResponse.json({ message: `ยืนยันการมอบตัวสำหรับใบสมัคร ${applicationId} สำเร็จแล้ว` }, { status: 200 });
   } catch (error) {

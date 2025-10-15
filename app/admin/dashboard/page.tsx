@@ -2,7 +2,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 // import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { ApplicationStatus } from '@prisma/client';
 
@@ -21,8 +21,6 @@ interface Phase3Data {
   countBySchool: { status: ApplicationStatus; _count: { id: number } }[];
   countByProvince: { status: ApplicationStatus; _count: { id: number } }[];
 }
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 export default function AdminDashboardPage() {
   const { data: session, status } = useSession();
@@ -73,16 +71,6 @@ export default function AdminDashboardPage() {
       fetchDashboardData();
     }
   }, [session, status]);
-
-  const phase3ChartData = useMemo(() => {
-    if (!phase3Data) return [];
-    return [
-      { name: 'ยืนยันสิทธิ์แล้ว', value: phase3Data.confirmedCount },
-      { name: 'สละสิทธิ์', value: phase3Data.rejectedCount },
-      { name: 'ยังไม่ดำเนินการ', value: phase3Data.notProcessedCount },
-      { name: 'รอเรียก (ตัวสำรอง)', value: phase3Data.waitingForCallCount },
-    ].filter(item => item.value > 0);
-  }, [phase3Data]);
 
   if (status === 'loading' || loadingPhase2 || loadingPhase3) {
     return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
