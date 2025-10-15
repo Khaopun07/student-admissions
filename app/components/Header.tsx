@@ -35,7 +35,7 @@ export default function Header() {
   return (
     <header className="bg-blue-600 text-white shadow-md">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-16 ">
           {/* Logo & Title */}
           <div className="flex items-center space-x-4">
             <Link href={isAdmin ? "/admin/dashboard" : "/student/dashboard"}>
@@ -51,8 +51,8 @@ export default function Header() {
             </Link>
           </div>
 
-          {/* User Info & Logout */}
-          {session && (
+          {/* Conditional Rendering: User Info/Logout vs Login/Signup */}
+          {session ? (
             <div className="relative" ref={dropdownRef}>
               <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center space-x-3 focus:outline-none">
                 <div className="text-right hidden md:block">
@@ -85,6 +85,15 @@ export default function Header() {
                   </button>
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="flex items-center space-x-4">
+              <Link href="/login">
+                <span className="text-sm font-medium hover:text-blue-100 transition-colors">เข้าสู่ระบบ</span>
+              </Link>
+              <Link href="/signup">
+                <span className="bg-white text-blue-600 text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-50 transition-colors">สมัครเข้าใช้งาน</span>
+              </Link>
             </div>
           )}
         </div>

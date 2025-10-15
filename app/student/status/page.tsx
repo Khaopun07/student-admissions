@@ -43,7 +43,6 @@ const documentTypeTranslations: Record<DocumentType, string> = {
   ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์ (สำหรับเข้าศึกษา)',
   ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับเข้าศึกษา)',
   ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
-  ADMISSION_CONFIRMATION_4: 'ไฟล์ที่ 4 (สำหรับเข้าศึกษา)',
 };
 
 const statusTranslations: Record<ApplicationStatus, string> = {

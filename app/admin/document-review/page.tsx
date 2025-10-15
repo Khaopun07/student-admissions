@@ -30,6 +30,17 @@ interface Document {
   application: ApplicationDetails;
 }
 
+const statusTranslations: Record<ApplicationStatus, string> = {
+  PENDING_REVIEW: 'รอตรวจสอบ',
+  DOCUMENTS_SUBMITTED: 'ยื่นเอกสารแล้ว',
+  ELIGIBLE_FOR_EXAM: 'มีสิทธิ์สอบ',
+  ADMISSION_ANNOUNCED: 'ประกาศผลแล้ว',
+  CONFIRMED_ADMISSION: 'ยืนยันสิทธิ์แล้ว',
+  REJECTED_ADMISSION: 'สละสิทธิ์',
+  NOT_PROCESSED: 'ไม่ดำเนินการ',
+  WAITING_FOR_CALL: 'รอเรียก (ตัวสำรอง)',
+}
+
 export default function AdminDocumentReviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -188,7 +199,7 @@ export default function AdminDocumentReviewPage() {
             <option value="">ทุกสถานะ</option>
             {Object.values(ApplicationStatus).map((statusOption) => (
               <option key={statusOption} value={statusOption}>
-                {statusOption.replace(/_/g, ' ')}
+                {statusTranslations[statusOption] || statusOption}
               </option>
             ))}
           </select>
@@ -215,7 +226,7 @@ export default function AdminDocumentReviewPage() {
                       {app.user.studentProfile?.firstName} {app.user.studentProfile?.lastName}
                     </td>
                     <td className="py-2 px-4 border-b">{app.user.email}</td>
-                    <td className="py-2 px-4 border-b">{app.status.replace(/_/g, ' ')}</td>
+                    <td className="py-2 px-4 border-b">{statusTranslations[app.status] || app.status}</td>
                     <td className="py-2 px-4 border-b">
                       <ul className="list-disc pl-5">
                         {documents.filter(doc => doc.application.id === app.id).map(doc => (

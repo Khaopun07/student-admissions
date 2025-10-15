@@ -23,7 +23,6 @@ const documentTypeTranslations: Record<DocumentType, string> = {
   ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์ (สำหรับเข้าศึกษา)',
   ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับเข้าศึกษา)',
   ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
-  ADMISSION_CONFIRMATION_4: 'ไฟล์ที่ 4 (สำหรับเข้าศึกษา)',
 };
 
 const REQUIRED_DOCUMENTS: DocumentType[] = [
@@ -165,13 +164,13 @@ export default function StudentDocumentsPage() {
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
               disabled={uploading}
             >
-              {uploading ? 'กำลังอัป로드...' : 'อัป로드เอกสาร'}
+              {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดเอกสาร'}
             </button>
           </form>
         </div>
 
         <div>
-          <h2 className="text-2xl font-semibold mb-4">เอกสารที่คุณอัป로드แล้ว</h2>
+          <h2 className="text-2xl font-semibold mb-4">เอกสารที่คุณอัปโหลดแล้ว</h2>
           {documents.length > 0 ? (
             <ul className="list-disc pl-5">
               {documents.map((doc) => (
@@ -185,7 +184,7 @@ export default function StudentDocumentsPage() {
               ))}
             </ul>
           ) : (
-            <p>ยังไม่มีเอกสารที่อัป로드</p>
+            <p>ยังไม่มีเอกสารที่อัป</p>
           )}
         </div>
 
