@@ -3,20 +3,20 @@
 // components/Header.tsx
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 
 export default function Header() {
   const { data: session } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const isAdmin = session?.user?.role === "ADMIN";
   const isStudent = session?.user?.role === "STUDENT";
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push("/");
+    await signOut({ callbackUrl: "/" });
   };
 
   useEffect(() => {
