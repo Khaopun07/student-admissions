@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useMemo } from 'react';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
+// import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, PieLabelRenderProps } from 'recharts';
 import { ApplicationStatus } from '@prisma/client';
 
 interface Phase2Data {
@@ -105,10 +105,6 @@ export default function AdminDashboardPage() {
             {phase2Data ? (
               <div>
                 <p><strong>จำนวนผู้มีสิทธิ์สอบทั้งหมด:</strong> {phase2Data.totalConfirmed}</p>
-                {/* Add more detailed breakdown by province/school if schema is updated */}
-                <p className="text-gray-600 mt-2">
-                  (การแบ่งข้อมูลอย่างละเอียดตามจังหวัด/โรงเรียนต้องมีการอัปเดตสกีมา)
-                </p>
               </div>
             ) : (
               <p>ไม่มีข้อมูลระยะที่ 2</p>
@@ -125,10 +121,6 @@ export default function AdminDashboardPage() {
                 <p><strong>สละสิทธิ์:</strong> {phase3Data.rejectedCount}</p>
                 <p><strong>ยังไม่ดำเนินการ:</strong> {phase3Data.notProcessedCount}</p>
                 <p><strong>รอเรียก (ตัวสำรอง):</strong> {phase3Data.waitingForCallCount}</p>
-                {/* Add more detailed breakdown by province/school if schema is updated */}
-                <p className="text-gray-600 mt-2">
-                  (การแบ่งข้อมูลอย่างละเอียดตามโรงเรียน/จังหวัดต้องมีการอัปเดตสกีมา)
-                </p>
               </div>
             ) : (
               <p>ไม่มีข้อมูลระยะที่ 3</p>

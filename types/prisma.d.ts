@@ -2,13 +2,11 @@ import { StudentProfile as PrismaStudentProfile, User as PrismaUser } from '@pri
 
 // Extend Prisma's generated types for more specific use in the frontend
 export interface StudentProfileWithUser extends PrismaStudentProfile {
-  email: ReactNode;
-  nationalId: ReactNode;
-  scienceScore: string;
-  gpaxScore: string;
-  school: string;
-  province: string;
-  lasercode: string;
-  dateofbirth: string;
+  scienceScore: number | null;
+  gpaxScore: number | null;
+  school: string | null;
+  province: string | null;
+  lasercode: string | null;
+  dateofbirth: string | null;
   user: Pick<PrismaUser, 'nationalId' | 'email' | 'createdAt'>;
 }
