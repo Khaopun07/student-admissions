@@ -53,7 +53,10 @@ export async function POST(request: Request) {
     }
 
     const userId = session.user.id;
-    const { applicationId, confirmAdmission, documents } = await request.json();
+    const formData = await request.formData();
+    const applicationId = formData.get('applicationId') as string;
+    const confirmAdmissionStr = formData.get('confirmAdmission') as string;
+    const confirmAdmission = confirmAdmissionStr === 'true';
 
     if (typeof confirmAdmission !== 'boolean' || !applicationId) {
       return NextResponse.json({ message: 'Invalid request body: Missing applicationId or confirmAdmission flag' }, { status: 400 });
@@ -86,17 +89,23 @@ export async function POST(request: Request) {
     });
 
     // Create document entries for the confirmation/rejection documents
-    if (confirmAdmission && documents && Array.isArray(documents)) {
-      const documentCreations = documents.map((doc: { documentType: PrismaDocumentType, filePath: string }) => {
-      return prisma.document.create({
-        data: {
-          applicationId: application.id,
-          documentType: doc.documentType,
-          filePath: doc.filePath,
-        },
+    if (confirmAdmission) {
+      const documentEntries = Array.from(formData.entries()).filter(
+        ([key]) => key !== 'applicationId' && key !== 'confirmAdmission'
+      );
+
+      const documentCreations = documentEntries.map(([key, value]) => {
+        const documentType = key as PrismaDocumentType;
+        const file = value as File;
+        // In a real-world scenario, you would upload the file to a storage service (like S3, Cloudinary)
+        // and save the URL. For now, we'll use a placeholder path.
+        const filePath = `/uploads/${userId}/admission/${file.name}`;
+
+        return prisma.document.create({
+          data: { applicationId: application.id, documentType, filePath },
+        });
       });
-    });
-    await prisma.$transaction(documentCreations);
+      await prisma.$transaction(documentCreations);
     }
 
 

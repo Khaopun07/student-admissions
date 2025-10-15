@@ -51,6 +51,7 @@ export default function Sidebar() {
             <NavLink href="/admin/exam-management">จัดการข้อมูลการสอบ</NavLink>
             <NavLink href="/admin/admission-management">จัดการผลการรับเข้าศึกษา</NavLink>
             <NavLink href="/admin/document-review">ตรวจสอบเอกสาร</NavLink>
+            {/* <NavLink href="/admin/confirm-admission">ยืนยันการมอบตัว</NavLink> */}
           </>
         )}
       </nav>

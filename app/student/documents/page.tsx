@@ -136,24 +136,34 @@ export default function StudentDocumentsPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">จัดการเอกสารของคุณ</h1>
+      <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold mb-8 text-center text-blue-800">จัดการเอกสารของคุณ</h1>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">อัปโหลดเอกสารใหม่</h2>
-          <form onSubmit={handleUpload} className="space-y-4">
+        {/* Upload Form Section */}
+        <div className="mb-10 p-6 bg-blue-50 rounded-lg border border-blue-200">
+          <h2 className="text-2xl font-semibold mb-4 text-blue-900">อัปโหลดเอกสารสำหรับยืนยันสิทธิ์สอบ</h2>
+          <p className="text-gray-600 mb-6">กรุณาอัปโหลดเอกสารยืนยันสิทธิ์การเข้าสอบและแบบยืนยันการชำระเงิน</p>
+          <form onSubmit={handleUpload} className="space-y-6">
             {REQUIRED_DOCUMENTS.map(docType => (
               <div key={docType}>
                 <label htmlFor={docType} className="block text-gray-700 text-sm font-bold mb-2">
                   {documentTypeTranslations[docType]}
                 </label>
-                <input
-                  type="file"
-                  id={docType}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                  onChange={(e) => handleFileChange(e, docType)}
-                  accept=".pdf,.jpg,.jpeg,.png"
-                />
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label htmlFor={docType} className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500">
+                        <span>อัปโหลดไฟล์</span>
+                        <input id={docType} name={docType} type="file" className="sr-only" onChange={(e) => handleFileChange(e, docType)} accept=".pdf,.jpg,.jpeg,.png" />
+                      </label>
+                      <p className="pl-1">หรือลากและวาง</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PDF ขนาดไม่เกิน 5MB</p>
+                  </div>
+                </div>
                 {documentUploads[docType] && <p className="text-sm text-gray-500 mt-1">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>}
               </div>
             ))}
@@ -161,37 +171,38 @@ export default function StudentDocumentsPage() {
             {uploadSuccess && <p className="text-green-500 text-xs italic mb-4">{uploadSuccess}</p>}
             <button
               type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-transform transform hover:scale-105"
               disabled={uploading}
             >
               {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดเอกสาร'}
             </button>
           </form>
         </div>
-
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">เอกสารที่คุณอัปโหลดแล้ว</h2>
+        
+        {/* Uploaded Documents Section */}
+        <div className="p-6 bg-gray-50 rounded-lg">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-800">เอกสารที่คุณอัปโหลดแล้ว</h2>
           {documents.length > 0 ? (
-            <ul className="list-disc pl-5">
+            <ul className="space-y-3">
               {documents.map((doc) => (
-                <li key={doc.id} className="mb-2">
-                  <strong>{documentTypeTranslations[doc.documentType]}:</strong>{' '}
-                  <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                    {doc.filePath.split('/').pop()}
-                  </a>{' '}
-                  (อัปโหลดเมื่อ: {new Date(doc.uploadedAt).toLocaleDateString()})
+                <li key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-md border">
+                  <div>
+                    <strong className="text-blue-800">{documentTypeTranslations[doc.documentType]}:</strong>{' '}
+                    <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{doc.filePath.split('/').pop()}</a>
+                  </div>
+                  <span className="text-sm text-gray-500">อัปโหลดเมื่อ: {new Date(doc.uploadedAt).toLocaleDateString('th-TH')}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p>ยังไม่มีเอกสารที่อัป</p>
+            <p className="text-gray-500">ยังไม่มีเอกสารที่อัปโหลด</p>
           )}
         </div>
 
         <div className="mt-8 text-center">
           <button
             onClick={() => router.push('/student/dashboard')}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors"
           >
             กลับไปที่แดชบอร์ด
           </button>

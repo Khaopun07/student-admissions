@@ -96,6 +96,7 @@ enum ApplicationStatus {
   REJECTED_ADMISSION // สละสิทธิ์
   NOT_PROCESSED // ไม่ดำเนินการ
   WAITING_FOR_CALL // รอเรียกยืนยันสิทธิ์ (สำหรับสำรอง)
+  ADMISSION_COMPLETED // เสร็จสิ้น
 }
 
 enum DocumentType {

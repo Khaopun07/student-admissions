@@ -3,7 +3,15 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, ChangeEvent } from 'react';
-import { ApplicationStatus, DocumentType } from '@prisma/client';
+import { DocumentType, ApplicationStatus } from '@prisma/client';
+import { FiFile, FiUpload, FiAlertCircle, FiLoader } from 'react-icons/fi';
+import { IoCheckmarkCircle, IoCloseCircle } from 'react-icons/io5';
+
+const REQUIRED_DOCUMENTS = [
+  DocumentType.ADMISSION_CONFIRMATION_1,
+  DocumentType.ADMISSION_CONFIRMATION_2,
+  DocumentType.ADMISSION_CONFIRMATION_3
+];
 
 interface AdmissionResult {
   id: string;
@@ -20,7 +28,14 @@ interface DocumentUploadState {
   [key: string]: File | null;
 }
 
-const REQUIRED_DOCUMENTS = [DocumentType.ADMISSION_CONFIRMATION_1, DocumentType.ADMISSION_CONFIRMATION_2, DocumentType.ADMISSION_CONFIRMATION_3];
+const documentTypeTranslations: Record<DocumentType, string> = {
+  ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์ (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
+  EXAM_CONFIRMATION_1: 'เอกสารยืนยันสิทธิ์การเข้าสอบ',
+  EXAM_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับยืนยันสิทธิ์สอบ)',
+  PAYMENT_SLIP: 'แบบยืนยันการชําระเงินค่าธรรมเนียม',
+};
 
 const statusTranslations: Record<ApplicationStatus, string> = {
   PENDING_REVIEW: 'รอตรวจสอบ',
@@ -31,17 +46,6 @@ const statusTranslations: Record<ApplicationStatus, string> = {
   REJECTED_ADMISSION: 'สละสิทธิ์',
   NOT_PROCESSED: 'ไม่ดำเนินการ',
   WAITING_FOR_CALL: 'รอเรียก (ตัวสำรอง)',
-};
-
-const documentTypeTranslations: Record<DocumentType, string> = {
-  ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์',
-  ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว',
-  ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
-  // Adding other types for completeness, though not used in the form
-  EXAM_CONFIRMATION_1: 'เอกสารยืนยันสิทธิ์สอบ',
-  EXAM_CONFIRMATION_2: 'สัญญามอบตัว (สอบ)',
-  PAYMENT_SLIP: 'สลิปชำระเงิน',
-  ADMISSION_CONFIRMATION_4: 'ไฟล์ที่ 4',
 };
 
 export default function StudentAdmissionPage() {
@@ -86,12 +90,15 @@ export default function StudentAdmissionPage() {
         }
       }
     };
-    fetchAdmissionResult();
-  }, [session, confirmationSuccess]);
+    if (status === 'authenticated') {
+      fetchAdmissionResult();
+    }
+  }, [session, status, confirmationSuccess]);
 
   const handleDocumentChange = (e: ChangeEvent<HTMLInputElement>, docType: DocumentType) => {
-    if (e.target.files && e.target.files[0]) {
-      setDocumentUploads(prev => ({ ...prev, [docType]: e.target.files![0] }));
+    const files = e.target.files;
+    if (files && files[0]) {
+      setDocumentUploads(prev => ({ ...prev, [docType]: files[0] }));
     } else {
       setDocumentUploads(prev => ({ ...prev, [docType]: null }));
     }
@@ -102,155 +109,281 @@ export default function StudentAdmissionPage() {
     setConfirmationSuccess('');
 
     if (!admissionResult?.applicationId) {
-      setError('No application found to confirm/reject.');
+      setError('ไม่พบใบสมัครเพื่อยืนยันหรือสละสิทธิ์');
       return;
     }
 
     const allDocsUploaded = REQUIRED_DOCUMENTS.every(docType => documentUploads[docType]);
     if (confirm && !allDocsUploaded) {
-      setError('กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบทั้ง 3 ไฟล์');
+      setError('กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบทุกไฟล์เพื่อยืนยันสิทธิ์');
       return;
     }
 
     setConfirming(true);
     try {
-      const documentsToUpload = confirm ? REQUIRED_DOCUMENTS.map(docType => ({
-        documentType: docType,
-        // In a real app, you would upload the file here and get the path
-        // For simulation, we create a path.
-        filePath: `/uploads/${session?.user?.id}/admission/${documentUploads[docType]!.name}`
-      })) : [];
+      const formData = new FormData();
+      formData.append('applicationId', admissionResult.applicationId);
+      formData.append('confirmAdmission', String(confirm));
+
+      if (confirm) {
+        REQUIRED_DOCUMENTS.forEach(docType => {
+          if (documentUploads[docType]) {
+            formData.append(docType, documentUploads[docType]!);
+          }
+        });
+      }
 
       const response = await fetch('/api/student/admission-status', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          applicationId: admissionResult.applicationId,
-          confirmAdmission: confirm,
-          documents: documentsToUpload,
-        }),
+        body: formData,
       });
 
       const data = await response.json();
 
       if (response.ok) {
         setConfirmationSuccess(data.message);
+        // Reset form state
         setDocumentUploads({
           [DocumentType.ADMISSION_CONFIRMATION_1]: null,
           [DocumentType.ADMISSION_CONFIRMATION_2]: null,
           [DocumentType.ADMISSION_CONFIRMATION_3]: null,
         });
       } else {
-        setError(data.message || 'Failed to update admission status');
+        setError(data.message || 'การดำเนินการล้มเหลว');
       }
     } catch (err) {
       console.error('Admission confirmation error:', err);
-      setError('An unexpected error occurred during admission confirmation.');
+      setError('เกิดข้อผิดพลาดที่ไม่คาดคิด');
     } finally {
       setConfirming(false);
     }
   };
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
-  }
-
-  if (error) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50">
+        <div className="text-center">
+          <FiLoader className="inline-block animate-spin h-12 w-12 text-blue-600" />
+          <p className="mt-4 text-gray-700">กำลังโหลดข้อมูล...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">สถานะการรับเข้าศึกษา</h1>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-orange-50 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <div className="inline-block p-3 bg-gradient-to-r from-blue-500 to-orange-500 rounded-full mb-4">
+            <IoCheckmarkCircle className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text text-transparent mb-2">
+            สถานะการรับเข้าศึกษา
+          </h1>
+          <p className="text-gray-600">ยืนยัน หรือ สละสิทธิ์การเข้าศึกษา</p>
+        </div>
 
         {admissionResult ? (
-          <div>
-            <p className="mb-2">
-              <strong>ผลการรับเข้าศึกษา:</strong>{' '}
-              {admissionResult.isAdmitted === true ? (
-                <span className="text-green-600">ตัวจริง</span>
-              ) : admissionResult.isAdmitted === false ? (
-                <span className="text-yellow-600">สำรอง</span>
-              ) : (
-                <span className="text-gray-600">ยังไม่ประกาศผล</span>
-              )}
-            </p>
-            <p className="mb-2">
-              <strong>สถานะของคุณ:</strong>{' '}
-              <span className="font-semibold">{statusTranslations[admissionResult.application.status] || admissionResult.application.status.replace(/_/g, ' ')}</span>
-            </p>
-
-            {admissionResult.isAdmitted !== null && admissionResult.isConfirmed === null && (
-              <div className="mt-6 p-4 border rounded-md bg-blue-50">
-                <h2 className="text-xl font-semibold mb-3">ยืนยัน หรือ สละสิทธิ์การเข้าศึกษา</h2>
-                <p className="mb-4">กรุณาตัดสินใจและอัปโหลดเอกสารที่จำเป็น</p>
-
+          <div className="space-y-6">
+            {/* Admission Result Card */}
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden border-l-4 border-blue-500">
+              <div className="p-8">
                 <div className="space-y-4">
-                  {REQUIRED_DOCUMENTS.map(docType => (
-                    <div key={docType}>
-                      <label htmlFor={docType} className="block text-gray-700 text-sm font-bold mb-2">
-                        {documentTypeTranslations[docType]}
-                      </label>
-                      <input
-                        type="file"
-                        id={docType}
-                        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        onChange={(e) => handleDocumentChange(e, docType)}
-                        accept=".pdf,.jpg,.jpeg,.png"
-                      />
-                      {documentUploads[docType] && <p className="text-sm text-gray-500 mt-1">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>}
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <FiFile className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 font-semibold">ผลการรับเข้าศึกษา</p>
+                      <p className="text-xl font-bold">
+                        {admissionResult.isAdmitted ? (
+                          <span className="text-green-600">✓ ผ่านการคัดเลือก (ตัวจริง)</span>
+                        ) : admissionResult.isAdmitted === false ? (
+                          <span className="text-orange-600">→ ผ่านการคัดเลือก (ตัวสำรอง)</span>
+                        ) : (
+                          <span className="text-gray-600">- ยังไม่ประกาศผล</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-gradient-to-r from-blue-200 to-orange-200"></div>
+
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-orange-100 rounded-lg">
+                      <FiAlertCircle className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-600 font-semibold">สถานะปัจจุบัน</p>
+                      <p className="text-lg font-semibold text-blue-800">
+                        {statusTranslations[admissionResult.application.status] || admissionResult.application.status}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Document Upload Section */}
+            {admissionResult.isAdmitted !== null && admissionResult.isConfirmed === null && (
+              <div className="bg-white rounded-xl shadow-lg p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center gap-2">
+                  <FiUpload className="w-6 h-6 text-orange-500" />
+                  ยืนยัน หรือ สละสิทธิ์การเข้าศึกษา
+                </h2>
+                <p className="text-gray-600 mb-8">
+                  หากคุณต้องการยืนยันสิทธิ์ กรุณาอัปโหลดเอกสารที่จำเป็นให้ครบถ้วน
+                </p>
+
+                <div className="space-y-6">
+                  {REQUIRED_DOCUMENTS.map((docType, index) => (
+                    <div key={docType} className="p-6 border-2 border-gray-200 rounded-lg hover:border-blue-300 transition-colors">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="px-3 py-1 bg-gradient-to-r from-blue-100 to-orange-100 rounded-full">
+                          <span className="text-sm font-bold text-transparent bg-gradient-to-r from-blue-600 to-orange-600 bg-clip-text">
+                            เอกสารที่ {index + 1}
+                          </span>
+                        </div>
+                        <label htmlFor={docType} className="block text-gray-800 font-semibold text-sm md:text-base">
+                          {documentTypeTranslations[docType]}
+                        </label>
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          id={docType}
+                          name={docType}
+                          type="file"
+                          className="sr-only"
+                          onChange={(e) => handleDocumentChange(e, docType)}
+                          accept=".pdf,.jpg,.jpeg,.png"
+                        />
+                        <label
+                          htmlFor={docType}
+                          className="flex flex-col items-center justify-center px-6 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                        >
+                          <div className="text-center">
+                            <FiUpload className="mx-auto h-10 w-10 text-gray-400 group-hover:text-blue-500 mb-2 transition-colors" />
+                            <div className="flex text-sm text-gray-600">
+                              <span className="relative font-semibold text-orange-500 hover:text-orange-600">
+                                อัปโหลดไฟล์
+                              </span>
+                              <p className="pl-1">หรือลากและวาง</p>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG ขนาดไม่เกิน 5MB</p>
+                          </div>
+                        </label>
+                      </div>
+
+                      {documentUploads[docType] && (
+                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                          <IoCheckmarkCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                          <p className="text-sm text-green-800 font-medium">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
 
-                {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-                {confirmationSuccess && <p className="text-green-500 text-xs italic mb-4">{confirmationSuccess}</p>}
+                {error && (
+                  <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                    <IoCloseCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-red-700 font-medium">{error}</p>
+                  </div>
+                )}
 
-                <div className="flex space-x-4">
+                {confirmationSuccess && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+                    <IoCheckmarkCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-green-700 font-medium">{confirmationSuccess}</p>
+                  </div>
+                )}
+
+                <div className="mt-8 flex flex-col sm:flex-row gap-4">
                   <button
                     onClick={() => handleConfirmAdmission(true)}
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shadow-lg"
                     disabled={confirming}
                   >
-                    {confirming ? 'กำลังยืนยัน...' : 'ยืนยันสิทธิ์'}
+                    {confirming ? (
+                      <span className="flex items-center justify-center">
+                        <FiLoader className="animate-spin h-5 w-5 mr-2" />
+                        กำลังยืนยัน...
+                      </span>
+                    ) : (
+                      '✓ ยืนยันสิทธิ์'
+                    )}
                   </button>
                   <button
                     onClick={() => handleConfirmAdmission(false)}
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 shadow-lg"
                     disabled={confirming}
                   >
-                    {confirming ? 'กำลังสละสิทธิ์...' : 'สละสิทธิ์'}
+                    {confirming ? (
+                      <span className="flex items-center justify-center">
+                        <FiLoader className="animate-spin h-5 w-5 mr-2" />
+                        กำลังดำเนินการ...
+                      </span>
+                    ) : '✗ สละสิทธิ์'}
                   </button>
                 </div>
               </div>
             )}
 
+            {/* Confirmation Status */}
             {admissionResult.isConfirmed !== null && (
-              <div className="mt-6 p-4 border rounded-md bg-gray-50">
-                <h2 className="text-xl font-semibold mb-3">การตัดสินใจของคุณ</h2>
-                <p>
-                  คุณได้ทำการ{' '}
-                  <span className={admissionResult.isConfirmed ? 'text-green-600 font-bold' : 'text-red-600 font-bold'}>
-                    {admissionResult.isConfirmed ? 'ยืนยันสิทธิ์' : 'สละสิทธิ์'}
-                  </span>{' '}
-                  เมื่อวันที่ {new Date(admissionResult.confirmationDate!).toLocaleDateString()}
-                </p>
+              <div
+                className={`rounded-xl shadow-lg p-8 border-l-4 ${
+                  admissionResult.isConfirmed
+                    ? 'bg-gradient-to-r from-green-50 to-green-100 border-green-500'
+                    : 'bg-gradient-to-r from-red-50 to-red-100 border-red-500'
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  {admissionResult.isConfirmed ? (
+                    <IoCheckmarkCircle className="w-8 h-8 text-green-600 mt-1 flex-shrink-0" />
+                  ) : (
+                    <IoCloseCircle className="w-8 h-8 text-red-600 mt-1 flex-shrink-0" />
+                  )}
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2 text-gray-800">การตัดสินใจของคุณ</h2>
+                    <p className="text-gray-800">
+                      คุณได้ทำการ{' '}
+                      <span
+                        className={`font-bold ${
+                          admissionResult.isConfirmed ? 'text-green-700' : 'text-red-700'
+                        }`}
+                      >
+                        {admissionResult.isConfirmed ? 'ยืนยันสิทธิ์' : 'สละสิทธิ์'}
+                      </span>{' '}
+                      เมื่อวันที่{' '}
+                      <span className="font-semibold">
+                        {new Date(admissionResult.confirmationDate || Date.now()).toLocaleDateString(
+                          'th-TH',
+                          { year: 'numeric', month: 'long', day: 'numeric' }
+                        )}
+                      </span>
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </div>
         ) : (
-          <p>ยังไม่มีผลการรับเข้าศึกษา</p>
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <FiAlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-lg text-gray-600">ยังไม่มีผลการรับเข้าศึกษา</p>
+          </div>
         )}
 
-        <div className="mt-8 text-center">
+        {/* Back Button */}
+        <div className="mt-8 flex justify-center">
           <button
             onClick={() => router.push('/student/dashboard')}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            className="px-8 py-3 bg-white hover:bg-gray-50 text-gray-800 font-bold rounded-lg shadow-md border border-gray-200 transition-all transform hover:scale-105"
           >
-            กลับไปที่แดชบอร์ด
+            ← กลับไปที่แดชบอร์ด
           </button>
         </div>
       </div>

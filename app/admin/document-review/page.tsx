@@ -180,11 +180,11 @@ export default function AdminDocumentReviewPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto bg-white p-8 rounded shadow-md">
-        <h1 className="text-3xl font-bold mb-6 text-center">ผู้ดูแลระบบ: ตรวจสอบเอกสาร</h1>
+      <div className="max-w-7xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+        <h1 className="text-3xl font-bold mb-8 text-center text-blue-800">ผู้ดูแลระบบ: ตรวจสอบเอกสาร</h1>
 
-        {submitSuccess && <p className="text-green-500 text-xs italic mb-4">{submitSuccess}</p>}
-        {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+        {submitSuccess && <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert"><p>{submitSuccess}</p></div>}
+        {error && <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert"><p>{error}</p></div>}
 
         <div className="mb-6">
           <label htmlFor="statusFilter" className="block text-gray-700 text-sm font-bold mb-2">
@@ -192,7 +192,7 @@ export default function AdminDocumentReviewPage() {
           </label>
           <select
             id="statusFilter"
-            className="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            className="block w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as ApplicationStatus | '')}
           >
@@ -206,15 +206,15 @@ export default function AdminDocumentReviewPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-200">
-            <thead>
+          <table className="min-w-full bg-white text-sm text-left text-gray-500">
+            <thead className="text-xs text-blue-800 uppercase bg-blue-50">
               <tr>
-                <th className="py-2 px-4 border-b">เลขประจำตัวประชาชน</th>
-                <th className="py-2 px-4 border-b">ชื่อ</th>
-                <th className="py-2 px-4 border-b">อีเมล</th>
-                <th className="py-2 px-4 border-b">สถานะใบสมัคร</th>
-                <th className="py-2 px-4 border-b">เอกสาร</th>
-                <th className="py-2 px-4 border-b">การดำเนินการ</th>
+                <th scope="col" className="py-3 px-6">เลขประจำตัวประชาชน</th>
+                <th scope="col" className="py-3 px-6">ชื่อ-สกุล</th>
+                <th scope="col" className="py-3 px-6">อีเมล</th>
+                <th scope="col" className="py-3 px-6">สถานะใบสมัคร</th>
+                <th scope="col" className="py-3 px-6">เอกสาร</th>
+                <th scope="col" className="py-3 px-6 text-center">การดำเนินการ</th>
               </tr>
             </thead>
             <tbody>
@@ -222,34 +222,34 @@ export default function AdminDocumentReviewPage() {
                 uniqueApplications.map((app) => (
                   <tr key={app.id} className="hover:bg-gray-50">
                     <td className="py-2 px-4 border-b">{app.user.nationalId}</td>
-                    <td className="py-2 px-4 border-b">
+                    <td className="py-2 px-4 border-b font-medium text-gray-900">
                       {app.user.studentProfile?.firstName} {app.user.studentProfile?.lastName}
                     </td>
                     <td className="py-2 px-4 border-b">{app.user.email}</td>
                     <td className="py-2 px-4 border-b">{statusTranslations[app.status] || app.status}</td>
                     <td className="py-2 px-4 border-b">
-                      <ul className="list-disc pl-5">
+                      <ul className="space-y-1">
                         {documents.filter(doc => doc.application.id === app.id).map(doc => (
                           <li key={doc.id}>
-                            <strong>{doc.documentType.replace(/_/g, ' ')}:</strong>{' '}
-                            <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                            <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                               ดู
                             </a>
+                            <span className="text-gray-600 ml-2">({doc.documentType.replace(/_/g, ' ')})</span>
                           </li>
                         ))}
                       </ul>
                     </td>
-                    <td className="py-2 px-4 border-b">
+                    <td className="py-2 px-4 border-b text-center space-x-2">
                       <button
                         onClick={() => handleConfirmDocuments(app.id)}
-                        className="bg-green-500 hover:bg-green-700 text-white text-sm py-1 px-2 rounded mr-2"
+                        className="bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors"
                         disabled={submitting}
                       >
                         ยืนยันเอกสาร
                       </button>
                       <button
                         onClick={() => handleNotifyMissingDocuments(app.id)}
-                        className="bg-red-500 hover:bg-red-700 text-white text-sm py-1 px-2 rounded"
+                        className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold py-2 px-3 rounded-lg transition-colors"
                         disabled={submitting}
                       >
                         แจ้งเอกสารขาด
@@ -268,8 +268,8 @@ export default function AdminDocumentReviewPage() {
 
         {missingDocsNotification.show && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded shadow-lg w-full max-w-md">
-              <h2 className="text-xl font-bold mb-4">แจ้งนักเรียนเกี่ยวกับเอกสารที่ขาด</h2>
+            <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+              <h2 className="text-2xl font-bold mb-6 text-blue-900">แจ้งนักเรียนเกี่ยวกับเอกสารที่ขาด</h2>
               <div className="mb-4">
                 <label className="block text-gray-700 text-sm font-bold mb-2">
                   เลือกประเภทเอกสารที่ขาด:
@@ -286,7 +286,7 @@ export default function AdminDocumentReviewPage() {
                           : missingDocsNotification.missingTypes.filter((t) => t !== type);
                         setMissingDocsNotification((prev) => ({ ...prev, missingTypes: newMissingTypes }));
                       }}
-                      className="mr-2"
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
                     />
                     <label htmlFor={`missing-${type}`}>{type.replace(/_/g, ' ')}</label>
                   </div>
@@ -299,22 +299,22 @@ export default function AdminDocumentReviewPage() {
                 <textarea
                   id="notificationMessage"
                   rows={4}
-                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                  className="block w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5"
                   value={missingDocsNotification.message}
                   onChange={(e) => setMissingDocsNotification((prev) => ({ ...prev, message: e.target.value }))}
                 ></textarea>
               </div>
-              {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
+              {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert"><p>{error}</p></div>}
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => setMissingDocsNotification({ show: false, applicationId: '', missingTypes: [], message: '' })}
-                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg"
                 >
                   ยกเลิก
                 </button>
                 <button
                   onClick={handleSendNotification}
-                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg"
                   disabled={submitting}
                 >
                   {submitting ? 'กำลังส่ง...' : 'ส่งการแจ้งเตือน'}
@@ -327,7 +327,7 @@ export default function AdminDocumentReviewPage() {
         <div className="mt-8 text-center">
           <button
             onClick={() => router.push('/admin/dashboard')}
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors"
           >
             กลับไปที่แดชบอร์ด
           </button>

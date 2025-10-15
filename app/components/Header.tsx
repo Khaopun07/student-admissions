@@ -17,7 +17,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     await signOut({ redirect: false });
-    router.push("/login");
+    router.push("/");
   };
 
   useEffect(() => {
