@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, ChangeEvent } from 'react';
+import { AlertCircle, ArrowLeft, CheckCircle, FileText, Upload } from 'lucide-react';
 import { DocumentType } from '@prisma/client';
 
 interface Document {
@@ -127,17 +128,39 @@ export default function StudentDocumentsPage() {
   };
 
   if (status === 'loading' || loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-blue-700 font-semibold">กำลังโหลดข้อมูลเอกสาร...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (error) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-100 text-red-500">{error}</div>;
+  // General page error, but not for form validation
+  if (error && !uploading && !uploadSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
+          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-red-600 mb-2">เกิดข้อผิดพลาด</h2>
+          <p className="text-gray-700 mb-6">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition-colors"
+          >
+            รีเฟรชหน้า
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-25 to-indigo-50 p-4 md:p-8">
       <div className="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-lg">
-        <h1 className="text-3xl font-bold mb-8 text-center text-blue-800">จัดการเอกสารของคุณ</h1>
+        <h1 className="text-3xl font-bold mb-8 text-center text-blue-800">จัดการเอกสาร</h1>
 
         {/* Upload Form Section */}
         <div className="mb-10 p-6 bg-blue-50 rounded-lg border border-blue-200">
@@ -151,9 +174,7 @@ export default function StudentDocumentsPage() {
                 </label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                   <div className="space-y-1 text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
                     <div className="flex text-sm text-gray-600">
                       <label htmlFor={docType} className="relative cursor-pointer bg-white rounded-md font-medium text-orange-600 hover:text-orange-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-orange-500">
                         <span>อัปโหลดไฟล์</span>
@@ -161,24 +182,39 @@ export default function StudentDocumentsPage() {
                       </label>
                       <p className="pl-1">หรือลากและวาง</p>
                     </div>
-                    <p className="text-xs text-gray-500">PDF ขนาดไม่เกิน 5MB</p>
+                    <p className="text-xs text-gray-500">PDF, JPG, PNG ขนาดไม่เกิน 5MB</p>
                   </div>
                 </div>
-                {documentUploads[docType] && <p className="text-sm text-gray-500 mt-1">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>}
+                {documentUploads[docType] && (
+                  <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md flex items-center gap-2">
+                    <CheckCircle size={16} className="text-green-600" />
+                    <p className="text-sm text-green-800 font-medium">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>
+                  </div>
+                )}
               </div>
             ))}
-            {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}
-            {uploadSuccess && <p className="text-green-500 text-xs italic mb-4">{uploadSuccess}</p>}
+            {error && (
+              <div className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex items-start gap-3">
+                <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+            )}
+            {uploadSuccess && (
+              <div className="mt-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-lg flex items-start gap-3">
+                <CheckCircle size={20} className="text-green-600 flex-shrink-0 mt-0.5" />
+                <p className="text-green-700 font-medium">{uploadSuccess}</p>
+              </div>
+            )}
             <button
               type="submit"
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-transform transform hover:scale-105"
+              className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white font-bold py-3 px-4 rounded-lg focus:outline-none focus:shadow-outline transition-all transform hover:scale-105"
               disabled={uploading}
             >
               {uploading ? 'กำลังอัปโหลด...' : 'อัปโหลดเอกสาร'}
             </button>
           </form>
         </div>
-        
+
         {/* Uploaded Documents Section */}
         <div className="p-6 bg-gray-50 rounded-lg">
           <h2 className="text-2xl font-semibold mb-4 text-gray-800">เอกสารที่คุณอัปโหลดแล้ว</h2>
@@ -187,8 +223,11 @@ export default function StudentDocumentsPage() {
               {documents.map((doc) => (
                 <li key={doc.id} className="flex items-center justify-between p-3 bg-white rounded-md border">
                   <div>
-                    <strong className="text-blue-800">{documentTypeTranslations[doc.documentType]}:</strong>{' '}
-                    <a href={doc.filePath} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{doc.filePath.split('/').pop()}</a>
+                    <strong className="text-blue-800">{documentTypeTranslations[doc.documentType]}:</strong>
+                    <a href={doc.filePath.replace(/^public/, '')} target="_blank" rel="noopener noreferrer" className="ml-2 text-blue-600 hover:underline flex items-center gap-1 text-sm">
+                      <FileText size={14} />
+                      ดูเอกสาร
+                    </a>
                   </div>
                   <span className="text-sm text-gray-500">อัปโหลดเมื่อ: {new Date(doc.uploadedAt).toLocaleDateString('th-TH')}</span>
                 </li>
@@ -202,9 +241,10 @@ export default function StudentDocumentsPage() {
         <div className="mt-8 text-center">
           <button
             onClick={() => router.push('/student/dashboard')}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors"
+            className="inline-flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-colors"
           >
-            กลับไปที่แดชบอร์ด
+            <ArrowLeft size={16} />
+            กลับแดชบอร์ด
           </button>
         </div>
       </div>

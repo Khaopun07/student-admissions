@@ -36,8 +36,8 @@ export async function GET() {
 }
 
 const profileUpdateSchema = z.object({
-  firstName: z.string().min(1, 'ต้องกรอกชื่อ'),
-  lastName: z.string().min(1, 'ต้องกรอกนามสกุล'),
+  firstName: z.string().min(1, 'ต้องกรอกชื่อ').optional(),
+  lastName: z.string().min(1, 'ต้องกรอกนามสกุล').optional(),
   dateofbirth: z.string().optional(),
   lasercode: z.string().optional(),
   province: z.string().optional(),
@@ -45,6 +45,7 @@ const profileUpdateSchema = z.object({
   gpaxScore: z.number().min(0).max(4).optional(),
   mathScore: z.number().min(0).optional(),
   scienceScore: z.number().min(0).optional(),
+  pdpaAccepted: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'ข้อมูลไม่ถูกต้อง', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    const { firstName, lastName, dateofbirth, lasercode, province, school, gpaxScore, mathScore, scienceScore } = validation.data;
+    const { firstName, lastName, dateofbirth, lasercode, province, school, gpaxScore, mathScore, scienceScore, pdpaAccepted } = validation.data;
 
     const updatedProfile = await prisma.studentProfile.update({
       where: { userId: session.user.id },
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
         gpaxScore,
         mathScore,
         scienceScore,
+        pdpaAccepted,
       },
       include: {
         user: {

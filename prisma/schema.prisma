@@ -35,7 +35,7 @@ model StudentProfile {
   gpaxScore    Float?    // คะแนนเฉลี่ยรวม
   mathScore    Float?    // ผลการเรียนคณิตศาสตร์
   scienceScore Float?    // ผลการเรียนวิทยาศาสตร์
-  pdpaAccepted Boolean   @default(false)
+  pdpaAccepted Boolean   @default(false) // ยอมรับ PDPA
   // Add other student-specific fields as needed
 }
 

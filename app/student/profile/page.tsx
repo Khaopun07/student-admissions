@@ -98,12 +98,49 @@ export default function StudentProfilePage() {
     }));
   };
 
+  const handlePdpaChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const { checked } = e.target;
+    // ไม่ต้องทำอะไรถ้าค่าเหมือนเดิม
+    if (formData.pdpaAccepted === checked) return;
+
+    // Optimistically update UI
+    setFormData(prev => ({ ...prev, pdpaAccepted: checked }));
+    if (profile) {
+        setProfile(prev => prev ? { ...prev, pdpaAccepted: checked } : null);
+    }
+
+    try {
+      // Create a new object for the request body to ensure it has the latest `checked` value
+      const updatedData = { ...formData, pdpaAccepted: checked };
+
+      const response = await fetch('/api/student/profile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updatedData),
+      });
+      if (!response.ok) {
+        setFormData(prev => ({ ...prev, pdpaAccepted: !checked })); // Revert on failure
+        throw new Error((await response.json()).message || 'ไม่สามารถอัปเดต PDPA ได้');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการอัปเดต PDPA');
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError('');
     try {
-      const response = await fetch('/api/student/profile', { method: 'POST', body: JSON.stringify(formData) });
+      const response = await fetch('/api/student/profile', { 
+        method: 'POST', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData) 
+      });
       if (!response.ok) throw new Error((await response.json()).message || 'ไม่สามารถอัปเดตข้อมูลได้');
       const updatedProfile = await response.json();
       setProfile(updatedProfile);
@@ -348,7 +385,7 @@ export default function StudentProfilePage() {
                       name="pdpaAccepted"
                       type="checkbox"
                       checked={formData.pdpaAccepted}
-                      onChange={handleChange}
+                      onChange={handlePdpaChange}
                       className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
                     />
                   </div>

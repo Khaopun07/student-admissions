@@ -43,6 +43,15 @@ const statusTranslations: Record<ApplicationStatus, string> = {
   ADMISSION_COMPLETED: 'การสมัครเสร็จสมบูรณ์',
 };
 
+const documentTypeTranslations: Record<DocumentType, string> = {
+  ADMISSION_CONFIRMATION_1: 'หนังสือยืนยันสิทธิ์ (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับเข้าศึกษา)',
+  ADMISSION_CONFIRMATION_3: 'ใบมอบตัว',
+  EXAM_CONFIRMATION_1: 'เอกสารยืนยันสิทธิ์การเข้าสอบ',
+  EXAM_CONFIRMATION_2: 'สัญญามอบตัว (สำหรับยืนยันสิทธิ์สอบ)',
+  PAYMENT_SLIP: 'แบบยืนยันการชําระเงินค่าธรรมเนียม',
+};
+
 export default function AdminDocumentReviewPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -52,6 +61,7 @@ export default function AdminDocumentReviewPage() {
   const [filterStatus, setFilterStatus] = useState<ApplicationStatus | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState('');
+  const [confirmedAppIds, setConfirmedAppIds] = useState<string[]>([]);
   const [missingDocsNotification, setMissingDocsNotification] = useState({
     show: false,
     applicationId: '',
@@ -109,6 +119,7 @@ export default function AdminDocumentReviewPage() {
 
       if (response.ok) {
         setSubmitSuccess(data.message);
+        setConfirmedAppIds(prev => [...prev, applicationId]);
       } else {
         setError(data.message || 'ไม่สามารถยืนยันเอกสารได้');
       }
@@ -316,7 +327,7 @@ export default function AdminDocumentReviewPage() {
                                   ดู
                                 </a>
                                 <span className="text-gray-500 text-xs">
-                                  ({doc.documentType.replace(/_/g, ' ')})
+                                  ({documentTypeTranslations[doc.documentType] || doc.documentType})
                                 </span>
                               </li>
                             ))}
@@ -324,15 +335,22 @@ export default function AdminDocumentReviewPage() {
                       </td>
                       <td className="px-4 md:px-6 py-4 text-center">
                         <div className="flex flex-col md:flex-row gap-2 justify-center">
-                          <button
-                            onClick={() => handleConfirmDocuments(app.id)}
-                            className="inline-flex items-center justify-center gap-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 rounded-lg transition-colors text-xs md:text-sm font-semibold whitespace-nowrap"
-                            disabled={submitting}
-                          >
-                            <CheckCircle size={16} />
-                            <span className="hidden md:inline">ยืนยันเอกสาร</span>
-                            <span className="md:hidden">ยืนยัน</span>
-                          </button>
+                          {app.status === ApplicationStatus.DOCUMENTS_SUBMITTED ? (
+                            <button
+                              onClick={() => handleConfirmDocuments(app.id)}
+                              className="inline-flex items-center justify-center gap-1 bg-green-500 hover:bg-green-600 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 rounded-lg transition-colors text-xs md:text-sm font-semibold whitespace-nowrap"
+                              disabled={submitting}
+                            >
+                              <CheckCircle size={16} />
+                              <span className="hidden md:inline">ยืนยันเอกสาร</span>
+                              <span className="md:hidden">ยืนยัน</span>
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-2 px-3 py-2 bg-green-100 text-green-800 rounded-lg text-sm font-semibold whitespace-nowrap">
+                              <CheckCircle size={16} />
+                              ยืนยันแล้ว
+                            </span>
+                          )}
                           <button
                             onClick={() => handleNotifyMissingDocuments(app.id)}
                             className="inline-flex items-center justify-center gap-1 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-400 text-white px-3 md:px-4 py-2 rounded-lg transition-colors text-xs md:text-sm font-semibold whitespace-nowrap"
@@ -390,7 +408,7 @@ export default function AdminDocumentReviewPage() {
                           className="h-4 w-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500"
                         />
                         <label htmlFor={`missing-${type}`} className="ml-3 text-sm text-gray-700">
-                          {type.replace(/_/g, ' ')}
+                          {documentTypeTranslations[type] || type}
                         </label>
                       </div>
                     ))}

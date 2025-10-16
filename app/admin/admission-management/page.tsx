@@ -248,9 +248,7 @@ export default function AdminAdmissionManagementPage() {
                         {getConfirmBadge(app.admissionResult?.isConfirmed ?? null)}
                       </td>
                       <td className="px-4 md:px-6 py-4 text-center">
-                        {app.status === ApplicationStatus.ADMISSION_ANNOUNCED || 
-                         app.status === ApplicationStatus.CONFIRMED_ADMISSION || 
-                         app.status === ApplicationStatus.REJECTED_ADMISSION ? (
+                        {app.admissionResult && app.admissionResult.isAdmitted !== null ? (
                           <span className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-semibold">
                             <CheckCircle size={16} className="mr-2" />
                             ประกาศแล้ว

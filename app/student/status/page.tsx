@@ -79,7 +79,13 @@ export default function StudentStatusTrackingPage() {
           if (response.ok) {
             setApplication(data);
           } else {
-            setError(data.message || 'ไม่สามารถดึงข้อมูลการสมัครได้');
+            // ถ้า API ตอบกลับว่า "ไม่พบใบสมัคร" (404) ให้ตั้งค่า application เป็น null
+            // เพื่อให้หน้าเว็บแสดงข้อความ "ยังไม่มีข้อมูลการสมัคร" แทนที่จะเป็นหน้า error
+            if (response.status === 404) {
+              setApplication(null);
+            } else {
+              setError(data.message || 'ไม่สามารถดึงข้อมูลการสมัครได้');
+            }
           }
         } catch (err) {
           console.error('Failed to fetch application data:', err);
