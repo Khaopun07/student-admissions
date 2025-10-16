@@ -16,7 +16,7 @@ CREATE TABLE "User" (
     "role" "UserRole" NOT NULL DEFAULT 'STUDENT',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-
+ 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
 
@@ -28,7 +28,6 @@ CREATE TABLE "StudentProfile" (
     "lastName" TEXT,
     "mathScore" DOUBLE PRECISION,
     "pdpaAccepted" BOOLEAN NOT NULL DEFAULT false,
-
     CONSTRAINT "StudentProfile_pkey" PRIMARY KEY ("id")
 );
 

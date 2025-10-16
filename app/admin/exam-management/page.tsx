@@ -249,7 +249,7 @@ export default function AdminExamManagementPage() {
                               value={editRoomNumber}
                               onChange={(e) => setEditRoomNumber(e.target.value)}
                               placeholder="กรอกหมายเลข"
-                              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm text-gray-900 placeholder-gray-500"
                             />
                           </td>
                           <td className="px-6 py-4">
@@ -258,7 +258,7 @@ export default function AdminExamManagementPage() {
                               value={editSeatNumber}
                               onChange={(e) => setEditSeatNumber(e.target.value)}
                               placeholder="กรอกหมายเลข"
-                              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm"
+                              className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-sm text-gray-900 placeholder-gray-500"
                             />
                           </td>
                           <td className="px-6 py-4">
