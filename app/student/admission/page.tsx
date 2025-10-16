@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, ChangeEvent } from 'react';
 import { DocumentType, ApplicationStatus } from '@prisma/client';
-import { FiFile, FiUpload, FiAlertCircle, FiLoader } from 'react-icons/fi';
+import { FiFile, FiUpload, FiAlertCircle, FiLoader, FiEye, FiX } from 'react-icons/fi';
 import { IoCheckmarkCircle, IoCloseCircle } from 'react-icons/io5';
 
 const REQUIRED_DOCUMENTS = [
@@ -62,6 +62,7 @@ export default function StudentAdmissionPage() {
     [DocumentType.ADMISSION_CONFIRMATION_2]: null,
     [DocumentType.ADMISSION_CONFIRMATION_3]: null,
   });
+  const [previewFile, setPreviewFile] = useState<{ file: File; name: string } | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -105,6 +106,14 @@ export default function StudentAdmissionPage() {
     }
   };
 
+  const handlePreviewFile = (file: File) => {
+    setPreviewFile({ file, name: file.name });
+  };
+
+  const closePreview = () => {
+    setPreviewFile(null);
+  };
+
   const handleConfirmAdmission = async (confirm: boolean) => {
     setError('');
     setConfirmationSuccess('');
@@ -143,7 +152,6 @@ export default function StudentAdmissionPage() {
 
       if (response.ok) {
         setConfirmationSuccess(data.message);
-        // Reset form state
         setDocumentUploads({
           [DocumentType.ADMISSION_CONFIRMATION_1]: null,
           [DocumentType.ADMISSION_CONFIRMATION_2]: null,
@@ -278,9 +286,19 @@ export default function StudentAdmissionPage() {
                       </div>
 
                       {documentUploads[docType] && (
-                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-                          <IoCheckmarkCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                          <p className="text-sm text-green-800 font-medium">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>
+                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <IoCheckmarkCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <p className="text-sm text-green-800 font-medium">ไฟล์ที่เลือก: {documentUploads[docType]?.name}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewFile(documentUploads[docType]!)}
+                            className="flex items-center gap-1 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded transition-colors flex-shrink-0"
+                          >
+                            <FiEye className="w-4 h-4" />
+                            ดู
+                          </button>
                         </div>
                       )}
                     </div>
@@ -388,6 +406,53 @@ export default function StudentAdmissionPage() {
           </button>
         </div>
       </div>
+
+      {/* File Preview Modal */}
+      {previewFile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="text-lg font-bold text-gray-800">ดูไฟล์: {previewFile.name}</h3>
+              <button
+                onClick={closePreview}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <FiX className="w-6 h-6 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6">
+              {previewFile.file.type.startsWith('image/') ? (
+                <img
+                  src={URL.createObjectURL(previewFile.file)}
+                  alt={previewFile.name}
+                  className="w-full h-auto rounded-lg"
+                />
+              ) : previewFile.file.type === 'application/pdf' ? (
+                <iframe
+                  src={URL.createObjectURL(previewFile.file)}
+                  className="w-full h-[600px] rounded-lg border border-gray-300"
+                  title={previewFile.name}
+                />
+              ) : (
+                <div className="p-8 bg-gray-50 rounded-lg text-center">
+                  <FiFile className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้</p>
+                  <a
+                    href={URL.createObjectURL(previewFile.file)}
+                    download={previewFile.name}
+                    className="inline-block px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+                  >
+                    ดาวน์โหลด
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

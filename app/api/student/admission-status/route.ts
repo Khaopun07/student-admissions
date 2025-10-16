@@ -1,8 +1,11 @@
+// route.ts (นักเรียนอัปโหลดเอกสารการยืนยันสิทธิ์)
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ApplicationStatus, DocumentType as PrismaDocumentType } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 export async function GET() {
   try {
@@ -94,20 +97,39 @@ export async function POST(request: Request) {
         ([key]) => key !== 'applicationId' && key !== 'confirmAdmission'
       );
 
-      const documentCreations = documentEntries.map(([key, value]) => {
+      const fileProcessingPromises = documentEntries.map(async ([key, value]) => {
         const documentType = key as PrismaDocumentType;
         const file = value as File;
-        // In a real-world scenario, you would upload the file to a storage service (like S3, Cloudinary)
-        // and save the URL. For now, we'll use a placeholder path.
-        const filePath = `/uploads/${userId}/admission/${file.name}`;
+        const buffer = Buffer.from(await file.arrayBuffer());
+        return { documentType, file, buffer };
+      });
+
+      const processedFiles = await Promise.all(fileProcessingPromises);
+
+      const documentCreations = processedFiles.map(processedFile => {
+        const { documentType, file, buffer } = processedFile;
+
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads', userId, 'admission');
+        const filePathOnDisk = path.join(uploadDir, file.name);
+        const fileUrl = `/uploads/${userId}/admission/${file.name}`;
+
+        // Ensure directory exists
+        fs.mkdirSync(uploadDir, { recursive: true });
+
+        // Save the file
+        fs.writeFileSync(filePathOnDisk, buffer);
 
         return prisma.document.create({
-          data: { applicationId: application.id, documentType, filePath },
+          data: {
+            applicationId: application.id,
+            documentType,
+            filePath: fileUrl,
+          },
         });
       });
+
       await prisma.$transaction(documentCreations);
     }
-
 
     return NextResponse.json({ message: 'Admission status updated successfully', result: updatedAdmissionResult }, { status: 200 });
 

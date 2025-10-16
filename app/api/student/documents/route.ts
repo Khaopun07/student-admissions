@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { DocumentType } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request: Request) {
   try {
@@ -20,7 +22,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No documents uploaded' }, { status: 400 });
     }
 
-    // Find or create an application for the student
+    // สร้าง application ให้ถ้ายังไม่มี
     let application = await prisma.application.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -30,34 +32,58 @@ export async function POST(request: Request) {
       application = await prisma.application.create({
         data: {
           userId,
-          status: 'DOCUMENTS_SUBMITTED', // Initial status after first document upload
+          status: 'DOCUMENTS_SUBMITTED',
         },
       });
     } else if (application.status === 'PENDING_REVIEW') {
-      // Update status if it's still pending review and documents are being submitted
       await prisma.application.update({
         where: { id: application.id },
         data: { status: 'DOCUMENTS_SUBMITTED' },
       });
     }
 
-    const documentCreations = documentEntries.map(([key, value]) => {
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', userId.toString());
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const documentCreations = [];
+
+    for (const [key, value] of documentEntries) {
       const documentType = key as DocumentType;
       const file = value as File;
-      const filePath = `/uploads/${userId}/${documentType}/${file.name}`; // Placeholder path
-      
-      return prisma.document.create({
-        data: {
-          applicationId: application.id,
-          documentType: documentType,
-          filePath: filePath,
-        },
-      });
-    });
+
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const safeFileName = file.name.replace(/\s+/g, '_');
+      const fileDir = path.join(uploadsDir, documentType);
+      const filePath = path.join(fileDir, safeFileName);
+
+      if (!fs.existsSync(fileDir)) {
+        fs.mkdirSync(fileDir, { recursive: true });
+      }
+
+      // ✅ เขียนไฟล์ไปที่ public/uploads/...
+      fs.writeFileSync(filePath, fileBuffer);
+
+      const publicPath = `/uploads/${userId}/${documentType}/${safeFileName}`;
+
+      documentCreations.push(
+        prisma.document.create({
+          data: {
+            applicationId: application.id,
+            documentType: documentType,
+            filePath: publicPath,
+          },
+        })
+      );
+    }
 
     const createdDocuments = await prisma.$transaction(documentCreations);
 
-    return NextResponse.json({ message: 'Documents uploaded successfully', documents: createdDocuments }, { status: 201 });
+    return NextResponse.json(
+      { message: 'Documents uploaded successfully', documents: createdDocuments },
+      { status: 201 }
+    );
 
   } catch (error) {
     console.error('Document upload error:', error);

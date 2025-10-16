@@ -2,14 +2,24 @@ import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
+import { z } from 'zod';
+
+const signupSchema = z.object({
+  nationalId: z.string().min(1, 'National ID is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
 
 export async function POST(request: Request) {
   try {
-    const { nationalId, email, password } = await request.json();
+    const body = await request.json();
+    const validation = signupSchema.safeParse(body);
 
-    if (!nationalId || !email || !password) {
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+    if (!validation.success) {
+      return NextResponse.json({ message: 'Invalid input', errors: validation.error.flatten().fieldErrors }, { status: 400 });
     }
+
+    const { nationalId, email, password } = validation.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findFirst({
@@ -36,6 +46,7 @@ export async function POST(request: Request) {
         studentProfile: {
           create: {
             // Initial student profile data, can be updated later
+            pdpaAccepted: false, // Correct: Set pdpaAccepted on the related StudentProfile
           },
         },
       },
