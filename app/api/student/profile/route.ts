@@ -65,19 +65,22 @@ export async function POST(request: NextRequest) {
 
     const { firstName, lastName, dateofbirth, lasercode, province, school, gpaxScore, mathScore, scienceScore, pdpaAccepted } = validation.data;
 
-    const updatedProfile = await prisma.studentProfile.update({
+    // Use upsert to either create a new profile or update an existing one.
+    const updatedProfile = await prisma.studentProfile.upsert({
       where: { userId: session.user.id },
-      data: {
+      update: { // Data to use if the record is found
         firstName,
         lastName,
         dateofbirth,
         lasercode,
         province,
         school,
-        gpaxScore,
-        mathScore,
-        scienceScore,
-        pdpaAccepted,
+        gpaxScore, mathScore, scienceScore, pdpaAccepted,
+      },
+      create: { // Data to use if the record is NOT found
+        userId: session.user.id,
+        firstName, lastName, dateofbirth, lasercode, province, school,
+        gpaxScore, mathScore, scienceScore, pdpaAccepted,
       },
       include: {
         user: {

@@ -15,6 +15,8 @@ interface Phase2Data {
 interface Phase3Data {
   totalApplicants: number;
   confirmedCount: number;
+  admittedCount: number;
+  waitlistedCount: number;
   rejectedCount: number;
   notProcessedCount: number;
   waitingForCallCount: number;
@@ -27,8 +29,7 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [phase2Data, setPhase2Data] = useState<Phase2Data | null>(null);
   const [phase3Data, setPhase3Data] = useState<Phase3Data | null>(null);
-  const [loadingPhase2, setLoadingPhase2] = useState(true);
-  const [loadingPhase3, setLoadingPhase3] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,30 +44,26 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (status === 'authenticated') {
       const fetchDashboardData = async () => {
+        setLoading(true);
+        setError('');
         try {
-          setLoadingPhase2(true);
-          const res2 = await fetch('/api/admin/dashboard-phase2');
-          if (!res2.ok) throw new Error('Failed to fetch Phase 2 dashboard data');
-          const data2 = await res2.json();
-          setPhase2Data(data2);
-        } catch (err) {
-          console.error('Failed to fetch Phase 2 dashboard data:', err);
-          setError('ไม่สามารถโหลดข้อมูลระยะที่ 2');
-        } finally {
-          setLoadingPhase2(false);
-        }
+          const [res2, res3] = await Promise.all([
+            fetch('/api/admin/dashboard-phase2'),
+            fetch('/api/admin/dashboard-phase3'),
+          ]);
 
-        try {
-          setLoadingPhase3(true);
-          const res3 = await fetch('/api/admin/dashboard-phase3');
-          if (!res3.ok) throw new Error('Failed to fetch Phase 3 dashboard data');
-          const data3 = await res3.json();
-          setPhase3Data(data3);
+          if (!res2.ok) throw new Error('ไม่สามารถโหลดข้อมูลระยะที่ 2');
+          if (!res3.ok) throw new Error('ไม่สามารถโหลดข้อมูลระยะที่ 3');
+
+          const [data2, data3] = await Promise.all([res2.json(), res3.json()]);
+
+          setPhase2Data(data2 as Phase2Data);
+          setPhase3Data(data3 as Phase3Data);
         } catch (err) {
-          console.error('Failed to fetch Phase 3 dashboard data:', err);
-          setError('ไม่สามารถโหลดข้อมูลระยะที่ 3');
+          console.error('Failed to fetch dashboard data:', err);
+          setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการโหลดข้อมูล');
         } finally {
-          setLoadingPhase3(false);
+          setLoading(false);
         }
       };
       fetchDashboardData();
@@ -95,7 +92,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  if (status === 'loading' || loadingPhase2 || loadingPhase3) {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="text-center">
@@ -170,6 +167,21 @@ export default function AdminDashboardPage() {
             <div className="p-8">
               {phase3Data ? (
                 <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                      <p className="text-gray-600 text-xs font-medium">ผ่านการคัดเลือก (ตัวจริง)</p>
+                      <p className="text-3xl font-bold text-blue-600 mt-1">{phase3Data.admittedCount}</p>
+                    </div>
+                    <div className="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-500">
+                      <p className="text-gray-600 text-xs font-medium">ผ่านการคัดเลือก (ตัวสำรอง)</p>
+                      <p className="text-3xl font-bold text-yellow-600 mt-1">{phase3Data.waitlistedCount}</p>
+                    </div>
+                  </div>
+                  <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-gray-200"></div>
+                    <span className="flex-shrink mx-4 text-gray-400 text-sm">สถานะการยืนยันสิทธิ์</span>
+                    <div className="flex-grow border-t border-gray-200"></div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-indigo-50 p-4 rounded-lg">
                       <p className="text-gray-600 text-xs font-medium">ผู้สมัครทั้งหมด</p>
@@ -196,10 +208,6 @@ export default function AdminDashboardPage() {
                       </div>
                       <p className="text-3xl font-bold text-yellow-600 mt-1">{phase3Data.notProcessedCount}</p>
                     </div>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500 mt-4">
-                    <p className="text-gray-600 text-sm font-medium">รอเรียก (ตัวสำรอง)</p>
-                    <p className="text-2xl font-bold text-purple-600 mt-1">{phase3Data.waitingForCallCount}</p>
                   </div>
                 </div>
               ) : (

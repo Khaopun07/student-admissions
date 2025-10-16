@@ -40,20 +40,27 @@ export default function StudentProfilePage() {
         try {
           setLoadingProfile(true);
           const response = await fetch('/api/student/profile');
+          
           if (!response.ok) {
+            // Handle 404 Not Found specifically: It means the user is new.
+            if (response.status === 404) {
+              setProfile(null); // Ensure profile is null
+              // Pre-fill email and nationalId from session for the creation form
+              setFormData(prev => ({
+                ...prev,
+                email: session.user.email ?? '',
+                nationalId: session.user.nationalId ?? '',
+              }));
+              return; // Exit fetch logic, no error
+            }
+            // For other errors, throw to be caught below
             const errorData = await response.json().catch(() => ({ message: 'ไม่สามารถดึงข้อมูลส่วนตัวได้' }));
             throw new Error(errorData.message);
           }
+
           const data = await response.json();
-          // Set both profile for viewing and formData for editing
-          const initialData = {
-            ...data,
-            firstName: data.firstName || '',
-            lastName: data.lastName || '',
-            // ensure other fields have default values if they can be null
-          };
-          setProfile(initialData);
-          setFormData(initialData);
+          setProfile(data);
+          setFormData(data);
         } catch (err) {
           console.error('Failed to fetch profile:', err);
           setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่คาดคิดขณะดึงข้อมูล');
@@ -543,3 +550,4 @@ export default function StudentProfilePage() {
     </div>
   );
 }
+

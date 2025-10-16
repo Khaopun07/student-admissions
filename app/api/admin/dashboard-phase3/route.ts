@@ -1,45 +1,41 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { ApplicationStatus } from '@prisma/client';
 
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json({ message: 'ไม่ได้รับอนุญาต' }, { status: 401 });
+  }
+
   try {
-    const session = await getServerSession(authOptions);
-
-    if (!session || !session.user || session.user.role !== 'ADMIN') {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const totalApplicants = 80; // As per requirements
-
-    const confirmedCount = await prisma.application.count({
-      where: { status: ApplicationStatus.CONFIRMED_ADMISSION },
+    const applications = await prisma.application.findMany({
+      where: {
+        status: {
+          in: [
+            ApplicationStatus.ADMISSION_ANNOUNCED,
+            ApplicationStatus.CONFIRMED_ADMISSION,
+            ApplicationStatus.REJECTED_ADMISSION,
+            ApplicationStatus.WAITING_FOR_CALL,
+            ApplicationStatus.ADMISSION_COMPLETED,
+          ],
+        },
+      },
+      include: {
+        admissionResult: true,
+      },
     });
 
-    const rejectedCount = await prisma.application.count({
-      where: { status: ApplicationStatus.REJECTED_ADMISSION },
-    });
+    const totalApplicants = applications.length;
+    const confirmedCount = applications.filter(app => app.status === ApplicationStatus.CONFIRMED_ADMISSION || app.status === ApplicationStatus.ADMISSION_COMPLETED).length;
+    const rejectedCount = applications.filter(app => app.status === ApplicationStatus.REJECTED_ADMISSION).length;
+    const waitingForCallCount = applications.filter(app => app.status === ApplicationStatus.WAITING_FOR_CALL).length;
+    const notProcessedCount = applications.filter(app => app.status === ApplicationStatus.ADMISSION_ANNOUNCED && app.admissionResult?.isConfirmed === null).length;
 
-    const notProcessedCount = await prisma.application.count({
-      where: { status: ApplicationStatus.NOT_PROCESSED },
-    });
-
-    const waitingForCallCount = await prisma.application.count({
-      where: { status: ApplicationStatus.WAITING_FOR_CALL },
-    });
-
-    // Placeholder for counts by school and province (requires schema update)
-    const countBySchool = await prisma.application.groupBy({
-      by: ['status'], // Placeholder
-      _count: { id: true },
-    });
-
-    const countByProvince = await prisma.application.groupBy({
-      by: ['status'], // Placeholder
-      _count: { id: true },
-    });
+    const admittedCount = applications.filter(app => app.admissionResult?.isAdmitted === true).length;
+    const waitlistedCount = applications.filter(app => app.admissionResult?.isAdmitted === false).length;
 
     return NextResponse.json({
       totalApplicants,
@@ -47,12 +43,11 @@ export async function GET() {
       rejectedCount,
       notProcessedCount,
       waitingForCallCount,
-      countBySchool,
-      countByProvince,
-    }, { status: 200 });
-
+      admittedCount,
+      waitlistedCount,
+    });
   } catch (error) {
-    console.error('Get dashboard phase 3 data error:', error);
-    return NextResponse.json({ message: 'Something went wrong' }, { status: 500 });
+    console.error('Failed to fetch phase 3 dashboard data:', error);
+    return NextResponse.json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลระยะที่ 3' }, { status: 500 });
   }
 }
