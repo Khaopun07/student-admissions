@@ -77,7 +77,14 @@ export async function POST(request: Request) {
     }
 
     switch (action) {
-      // ... (case อื่นๆ ของคุณ เช่น 'confirm_documents')
+      case 'confirm_documents':
+        await prisma.application.update({
+          where: { id: applicationId },
+          data: { status: ApplicationStatus.ELIGIBLE_FOR_EXAM },
+        });
+        return NextResponse.json({
+          message: 'ยืนยันเอกสารเรียบร้อยแล้ว สถานะผู้สมัครถูกเปลี่ยนเป็น "มีสิทธิ์สอบ"',
+        });
 
       case 'notify_missing_documents':
         if (!Array.isArray(missingDocumentTypes) || missingDocumentTypes.length === 0) {

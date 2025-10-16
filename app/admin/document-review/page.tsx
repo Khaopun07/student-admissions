@@ -308,7 +308,7 @@ export default function AdminDocumentReviewPage() {
                               <li key={doc.id} className="flex items-center gap-2">
                                 <FileText size={14} className="text-blue-600 flex-shrink-0" />
                                 <a
-                                  href={doc.filePath}
+                                  href={doc.filePath.replace(/^public/, '')}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-600 hover:underline text-xs"
