@@ -40,11 +40,11 @@ export default function Header() {
             <Link href={isAdmin ? "/admin/dashboard" : "/student/dashboard"}>
               <div className="flex items-center space-x-2 cursor-pointer">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-xl">K</span>
+                  <span className="text-blue-600 font-bold text-xl">TSU</span>
                 </div>
                 <div>
                   <h1 className="text-lg font-bold">ระบบรับสมัครนักเรียน</h1>
-                  <p className="text-xs text-blue-100">โรงเรียนคุณภาพ</p>
+                  <p className="text-xs text-blue-100">มหาวิทยาลัยทักษิณ</p>
                 </div>
               </div>
             </Link>

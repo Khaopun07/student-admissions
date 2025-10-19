@@ -292,7 +292,7 @@ export default function StudentProfilePage() {
                   />
                 </div>
 
-                <div>
+                {/* <div>
                   <label htmlFor="lasercode" className="block text-sm font-semibold text-gray-700 mb-2">
                     รหัสหลังบัตรประชาชน
                   </label>
@@ -305,7 +305,7 @@ export default function StudentProfilePage() {
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-gray-900"
                     placeholder="กรอกรหัสหลังบัตร"
                   />
-                </div>
+                </div> */}
 
                 <div>
                   <label htmlFor="province" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -459,10 +459,10 @@ export default function StudentProfilePage() {
                   <p className="text-sm text-gray-600">วัน/เดือน/ปีเกิด</p>
                   <p className="text-lg font-semibold text-gray-900">{profile.dateofbirth || 'ไม่มีข้อมูล'}</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
+                {/* <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">รหัสหลังบัตรประชาชน</p>
                   <p className="text-lg font-semibold text-gray-900">{profile.lasercode || 'ไม่มีข้อมูล'}</p>
-                </div>
+                </div> */}
                 <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-4 rounded-lg">
                   <p className="text-sm text-gray-600">จังหวัด</p>
                   <p className="text-lg font-semibold text-gray-900">{profile.province || 'ไม่มีข้อมูล'}</p>
