@@ -43,7 +43,7 @@ export default function Header() {
                   <span className="text-blue-600 font-bold text-xl">TSU</span>
                 </div>
                 <div>
-                  <h1 className="text-lg font-bold">ระบบรับสมัครนักเรียน</h1>
+                  <h1 className="text-lg font-bold">ระบบสมัครสอบคัดเลือกนักเรียนเข้าเป็นนักเรียนชั้นมัธยมศึกษาปีที่ 4 (โครงการ วมว. - ม.ทักษิณ)</h1>
                   <p className="text-xs text-blue-100">มหาวิทยาลัยทักษิณ</p>
                 </div>
               </div>

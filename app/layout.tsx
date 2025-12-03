@@ -6,7 +6,7 @@ import Providers from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ระบบรับสมัครนักเรียน",
+  title: "ระบบสมัครสอบคัดเลือกนักเรียนเข้าเป็นนักเรียนโรงเรียนชั้นมัธยมศึกษาปีที่4",
   description: "พอร์ทัลรับสมัครนักเรียน สร้างด้วย Next.js และ Prisma",
 };
 
